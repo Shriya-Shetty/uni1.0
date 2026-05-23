@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 220 30% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 10%;
+
+    --primary: 220 70% 25%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 30 90% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 30 90% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    --info: 210 80% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 220 70% 25%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 220 70% 18%;
+    --sidebar-foreground: 220 20% 90%;
+    --sidebar-primary: 30 90% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 60% 25%;
+    --sidebar-accent-foreground: 220 20% 90%;
+    --sidebar-border: 220 50% 25%;
+    --sidebar-ring: 30 90% 55%;
+
+    --severity-critical: 0 72% 51%;
+    --severity-high: 25 95% 53%;
+    --severity-medium: 38 92% 50%;
+    --severity-low: 152 60% 40%;
+
+    --channel-email: 210 80% 55%;
+    --channel-form: 152 60% 40%;
+    --channel-chatbot: 270 60% 55%;
+    --channel-voice: 30 90% 55%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(220 70% 25%), hsl(220 70% 35%));
+    --gradient-accent: linear-gradient(135deg, hsl(30 90% 55%), hsl(25 95% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 70% 18%), hsl(220 60% 28%));
+    --shadow-card: 0 1px 3px 0 hsl(220 30% 10% / 0.06), 0 1px 2px -1px hsl(220 30% 10% / 0.06);
+    --shadow-elevated: 0 10px 30px -10px hsl(220 30% 10% / 0.12);
+  }
+
+  .dark {
+    --background: 220 25% 8%;
+    --foreground: 220 15% 90%;
+    --card: 220 25% 12%;
+    --card-foreground: 220 15% 90%;
+    --popover: 220 25% 12%;
+    --popover-foreground: 220 15% 90%;
+    --primary: 30 90% 55%;
+    --primary-foreground: 0 0% 10%;
+    --secondary: 220 50% 30%;
+    --secondary-foreground: 220 15% 90%;
+    --muted: 220 20% 18%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 30 90% 55%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 30 90% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  .stat-card {
+    @apply bg-card rounded-xl p-5 border border-border;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .stat-card:hover {
+    box-shadow: var(--shadow-elevated);
+    transform: translateY(-1px);
+  }
+
+  .severity-critical {
+    @apply text-destructive;
+  }
+  .severity-high {
+    color: hsl(var(--severity-high));
+  }
+  .severity-medium {
+    color: hsl(var(--severity-medium));
+  }
+  .severity-low {
+    color: hsl(var(--severity-low));
+  }
+
+  .badge-severity-critical {
+    background: hsl(var(--severity-critical) / 0.12);
+    color: hsl(var(--severity-critical));
+  }
+  .badge-severity-high {
+    background: hsl(var(--severity-high) / 0.12);
+    color: hsl(var(--severity-high));
+  }
+  .badge-severity-medium {
+    background: hsl(var(--severity-medium) / 0.12);
+    color: hsl(var(--severity-medium));
+  }
+  .badge-severity-low {
+    background: hsl(var(--severity-low) / 0.12);
+    color: hsl(var(--severity-low));
+  }
+
+  .channel-badge-email {
+    background: hsl(var(--channel-email) / 0.12);
+    color: hsl(var(--channel-email));
+  }
+  .channel-badge-form {
+    background: hsl(var(--channel-form) / 0.12);
+    color: hsl(var(--channel-form));
+  }
+  .channel-badge-chatbot {
+    background: hsl(var(--channel-chatbot) / 0.12);
+    color: hsl(var(--channel-chatbot));
+  }
+  .channel-badge-voice {
+    background: hsl(var(--channel-voice) / 0.12);
+    color: hsl(var(--channel-voice));
+  }
+
+  .sidebar-gradient {
+    background: var(--gradient-hero);
+  }
+
+  .accent-gradient {
+    background: var(--gradient-accent);
+  }
+
+  .pulse-dot {
+    @apply relative;
+  }
+  .pulse-dot::after {
+    content: '';
+    @apply absolute top-0 right-0 w-2 h-2 rounded-full;
+    background: hsl(var(--severity-critical));
+    animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 hsl(var(--severity-critical) / 0.5); }
+    80%, 100% { box-shadow: 0 0 0 8px hsl(var(--severity-critical) / 0); }
+  }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.4s ease-out forwards;
+  }
+
+  .animate-stagger-1 { animation-delay: 0.05s; }
+  .animate-stagger-2 { animation-delay: 0.1s; }
+  .animate-stagger-3 { animation-delay: 0.15s; }
+  .animate-stagger-4 { animation-delay: 0.2s; }
+}

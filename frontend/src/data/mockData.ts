@@ -1,0 +1,522 @@
+// Mock data for Union Bank Grievance AI System
+
+export type Severity = 'critical' | 'high' | 'medium' | 'low';
+export type Channel = 'email' | 'form' | 'chatbot' | 'voice';
+export type Status = 'open' | 'in_progress' | 'escalated' | 'resolved' | 'closed';
+export type Sentiment = 'very_negative' | 'negative' | 'neutral' | 'positive';
+
+export interface ComplaintEvent {
+  type: string;
+  timestamp: string;
+  actor: string;
+  description: string;
+}
+
+export interface Complaint {
+  complaint_id: string;
+  customer_id: string;
+  customer_name: string;
+  message: string;
+  channel: Channel;
+  product: string;
+  type: string;
+  severity: Severity;
+  sentiment: Sentiment;
+  status: Status;
+  sla_deadline: string;
+  created_at: string;
+  keywords: string[];
+  events: ComplaintEvent[];
+  resolution_template?: string;
+  related_complaints?: string[];
+  branch?: string;
+  assigned_to?: string;
+}
+
+export interface ProductIssue {
+  product: string;
+  type: string;
+  count: number;
+  severity: Severity;
+  avg_resolution_hours: number;
+  sla_hours: number;
+  template: string;
+}
+
+export const PRODUCTS_AND_TYPES: Record<string, string[]> = {
+  'Credit Card': ['Fraud', 'Billing Error', 'Late Fee', 'Reward Points', 'Card Block', 'EMI Conversion', 'Limit Enhancement'],
+  'Cheque': ['Bounce', 'Clearance Delay', 'Lost Cheque', 'Signature Mismatch', 'Stop Payment'],
+  'Savings Account': ['Unauthorized Debit', 'Interest Rate', 'Statement Error', 'Minimum Balance', 'Account Closure'],
+  'Loan': ['EMI Overcharge', 'Prepayment Issue', 'Foreclosure', 'Document Issue', 'Disbursement Delay'],
+  'Net Banking': ['Login Issue', 'Transaction Failure', 'OTP Not Received', 'Fund Transfer Failed', 'Password Reset'],
+  'ATM': ['Cash Not Dispensed', 'Card Stuck', 'Wrong Amount', 'ATM Not Working', 'Skimming'],
+  'Fixed Deposit': ['Premature Withdrawal', 'Interest Calculation', 'Auto Renewal Issue', 'Certificate Not Received'],
+  'UPI': ['Transaction Failed', 'Refund Pending', 'Wrong Credit', 'Limit Issue', 'App Error'],
+};
+
+export const KEYWORD_LEMMA_MAP: Record<string, string> = {
+  'bounced': 'Bounce', 'bouncing': 'Bounce', 'bounce': 'Bounce', 'bounces': 'Bounce',
+  'fraud': 'Fraud', 'fraudulent': 'Fraud', 'fraudulently': 'Fraud', 'scam': 'Fraud', 'scammed': 'Fraud',
+  'blocked': 'Card Block', 'block': 'Card Block', 'blocking': 'Card Block',
+  'stuck': 'Card Stuck', 'jammed': 'Card Stuck',
+  'dispensed': 'Cash Not Dispensed', 'dispense': 'Cash Not Dispensed',
+  'failed': 'Transaction Failed', 'failing': 'Transaction Failed', 'failure': 'Transaction Failed',
+  'overcharged': 'Billing Error', 'overcharge': 'Billing Error', 'extra charge': 'Billing Error',
+  'unauthorized': 'Unauthorized Debit', 'unauthorised': 'Unauthorized Debit',
+  'login': 'Login Issue', 'signin': 'Login Issue', 'sign-in': 'Login Issue',
+  'otp': 'OTP Not Received', 'one-time': 'OTP Not Received',
+  'lost': 'Lost Cheque', 'missing': 'Lost Cheque', 'misplaced': 'Lost Cheque',
+  'delay': 'Clearance Delay', 'delayed': 'Clearance Delay', 'pending': 'Clearance Delay', 'slow': 'Clearance Delay',
+  'refund': 'Refund Pending', 'refunded': 'Refund Pending',
+  'emi': 'EMI Overcharge', 'installment': 'EMI Overcharge',
+  'reward': 'Reward Points', 'rewards': 'Reward Points', 'points': 'Reward Points',
+  'interest': 'Interest Rate', 'rate': 'Interest Rate',
+};
+
+export const PRODUCT_KEYWORD_MAP: Record<string, string> = {
+  'credit card': 'Credit Card', 'credit': 'Credit Card', 'visa': 'Credit Card', 'mastercard': 'Credit Card', 'rupay': 'Credit Card',
+  'cheque': 'Cheque', 'check': 'Cheque', 'cheques': 'Cheque',
+  'savings': 'Savings Account', 'savings account': 'Savings Account', 'account': 'Savings Account',
+  'loan': 'Loan', 'home loan': 'Loan', 'personal loan': 'Loan', 'car loan': 'Loan',
+  'net banking': 'Net Banking', 'internet banking': 'Net Banking', 'online banking': 'Net Banking', 'netbanking': 'Net Banking',
+  'atm': 'ATM', 'cash machine': 'ATM', 'atm machine': 'ATM',
+  'fixed deposit': 'Fixed Deposit', 'fd': 'Fixed Deposit',
+  'upi': 'UPI', 'google pay': 'UPI', 'phonepe': 'UPI', 'paytm': 'UPI', 'bhim': 'UPI',
+};
+
+export const RESOLUTION_TEMPLATES: Record<string, string> = {
+  'Credit Card:Fraud': 'Dear Customer, we have initiated an investigation into the fraudulent transaction on your credit card ending XXXX. Your card has been blocked for safety. A provisional credit will be issued within 7 working days as per RBI circular dated 06.07.2017. Case ref: {complaint_id}.',
+  'Credit Card:Billing Error': 'Dear Customer, we have reviewed your billing concern. The disputed amount of ₹XXXX has been flagged for reversal. Please allow 3-5 working days for the adjustment to reflect in your statement. Ref: {complaint_id}.',
+  'Credit Card:Late Fee': 'Dear Customer, we acknowledge your concern regarding the late fee charge. As per our records, the payment was received after the due date. However, as a one-time goodwill gesture, we have initiated a reversal. Ref: {complaint_id}.',
+  'Cheque:Bounce': 'Dear Customer, your cheque no. XXXXXX was returned due to {reason}. Please ensure sufficient funds and re-present the cheque. Bounce charges of ₹XXX have been applied as per RBI guidelines. Ref: {complaint_id}.',
+  'Cheque:Clearance Delay': 'Dear Customer, we regret the delay in cheque clearance. The matter has been escalated to our clearing department and NPCI. Expected clearance within 2 working days. Ref: {complaint_id}.',
+  'ATM:Cash Not Dispensed': 'Dear Customer, we have noted your complaint regarding ATM transaction failure at {location}. The amount of ₹XXXX will be auto-reversed to your account within T+5 working days as per RBI TAT norms. Ref: {complaint_id}.',
+  'ATM:Card Stuck': 'Dear Customer, we regret the inconvenience caused at our ATM. Your card has been retrieved and will be available for collection at the nearest branch. Alternatively, a replacement card will be dispatched within 7 working days. Ref: {complaint_id}.',
+  'Savings Account:Unauthorized Debit': 'Dear Customer, we take unauthorized transactions very seriously. An investigation under RBI\'s zero liability framework has been initiated. Please visit your nearest branch with valid ID for KYC verification. Provisional credit will be issued within 10 working days. Ref: {complaint_id}.',
+  'Net Banking:Login Issue': 'Dear Customer, your net banking access has been reset. Please use the "Forgot Password" option on our portal or visit the nearest branch with your passbook for re-registration. Ref: {complaint_id}.',
+  'UPI:Transaction Failed': 'Dear Customer, the failed UPI transaction of ₹XXXX (UTR: XXXXXXXXXXXX) has been identified. If debited, the amount will be auto-reversed within T+5 business days as per NPCI guidelines. Ref: {complaint_id}.',
+  'Loan:EMI Overcharge': 'Dear Customer, we have reviewed your EMI deduction for loan account XXXXXXXXXX. The excess amount of ₹XXXX will be adjusted in your next EMI cycle. Updated repayment schedule will be shared via registered email. Ref: {complaint_id}.',
+  'Fixed Deposit:Interest Calculation': 'Dear Customer, we have recalculated the interest on your FD account as per applicable rates. The revised interest certificate reflecting correct computation will be shared within 5 working days. Ref: {complaint_id}.',
+  'UPI:Refund Pending': 'Dear Customer, we have escalated your refund request (UTR: XXXXXXXXXXXX) to NPCI. As per RBI circular, the refund will be processed within T+5 working days from the date of complaint registration. Ref: {complaint_id}.',
+  'Cheque:Signature Mismatch': 'Dear Customer, your cheque was returned due to signature discrepancy. Please visit the branch to update your signature records or re-issue the cheque with your registered signature. Ref: {complaint_id}.',
+};
+
+export const MOCK_COMPLAINTS: Complaint[] = [
+  {
+    complaint_id: 'UBI-2026-00142',
+    customer_id: 'CUST-78432',
+    customer_name: 'Rajesh Kumar Sharma',
+    message: 'I noticed two unauthorized transactions of ₹8,500 and ₹6,500 on my credit card ending 4523 on 27th Feb. I have not shared my card or OTP with anyone. This is clearly fraud. I want immediate reversal and the card blocked. I am filing a police complaint as well.',
+    channel: 'email',
+    product: 'Credit Card',
+    type: 'Fraud',
+    severity: 'critical',
+    sentiment: 'very_negative',
+    status: 'escalated',
+    sla_deadline: '2026-03-03T10:00:00',
+    created_at: '2026-02-28T14:23:00',
+    keywords: ['credit card', 'unauthorized', 'fraud', 'reversal', 'blocked', 'police'],
+    branch: 'Mumbai - Andheri West',
+    assigned_to: 'Agent Priya Mehta',
+    events: [
+      { type: 'created', timestamp: '2026-02-28T14:23:00', actor: 'System', description: 'Complaint registered via grievance email (grievance@unionbankofindia.co.in)' },
+      { type: 'ai_analysis', timestamp: '2026-02-28T14:23:05', actor: 'AI Engine', description: 'Categorized: Credit Card → Fraud | Severity: Critical | Sentiment: Very Negative' },
+      { type: 'escalated', timestamp: '2026-02-28T14:25:00', actor: 'System', description: 'Auto-escalated: Critical severity → Branch Manager (Andheri West) notified via SMS' },
+      { type: 'assigned', timestamp: '2026-02-28T14:32:00', actor: 'System', description: 'Assigned to Agent Priya Mehta (Fraud Investigation Team)' },
+      { type: 'agent_review', timestamp: '2026-02-28T15:10:00', actor: 'Agent Priya Mehta', description: 'Card blocked (ref: BLK-28022026-4523). Two transactions flagged with merchant ONLINE*SHOPXYZ. Investigation opened with card network.' },
+    ],
+    related_complaints: ['UBI-2026-00138', 'UBI-2026-00135'],
+  },
+  {
+    complaint_id: 'UBI-2026-00141',
+    customer_id: 'CUST-56210',
+    customer_name: 'Anita Desai',
+    message: 'I deposited a cheque for ₹1,75,000 from HDFC Bank on 18th Feb at your Dadar branch. It has been 10 days and the amount is still not credited. Every time I call, they say it is in process. This is causing me severe financial hardship as I need to pay my daughter\'s college fees.',
+    channel: 'form',
+    product: 'Cheque',
+    type: 'Clearance Delay',
+    severity: 'medium',
+    sentiment: 'negative',
+    status: 'in_progress',
+    sla_deadline: '2026-03-05T18:00:00',
+    created_at: '2026-02-28T11:05:00',
+    keywords: ['cheque', 'deposited', 'not credited', 'delay', '10 days'],
+    branch: 'Mumbai - Dadar',
+    assigned_to: 'Clearing Dept - Dadar',
+    events: [
+      { type: 'created', timestamp: '2026-02-28T11:05:00', actor: 'System', description: 'Complaint registered via hard copy form (Form No. GR-2026-0891) at Dadar Branch' },
+      { type: 'ai_analysis', timestamp: '2026-02-28T11:05:08', actor: 'AI Engine', description: 'Categorized: Cheque → Clearance Delay | Severity: Medium | Sentiment: Negative' },
+      { type: 'assigned', timestamp: '2026-02-28T11:30:00', actor: 'Branch Manager - Dadar', description: 'Forwarded to clearing department. CTS image quality check initiated.' },
+    ],
+    related_complaints: ['UBI-2026-00130'],
+  },
+  {
+    complaint_id: 'UBI-2026-00140',
+    customer_id: 'CUST-34567',
+    customer_name: 'Mohammed Farooq',
+    message: 'Today morning at around 8:15 AM, I went to withdraw ₹10,000 from ATM ID UBI-ATM-MG042 near MG Road, Bengaluru. The machine made sounds but my card got stuck inside. The screen froze and showed "Transaction cannot be processed." I have been waiting near the ATM for 2 hours. Nobody from the bank has come.',
+    channel: 'chatbot',
+    product: 'ATM',
+    type: 'Card Stuck',
+    severity: 'high',
+    sentiment: 'negative',
+    status: 'open',
+    sla_deadline: '2026-03-02T12:00:00',
+    created_at: '2026-02-28T09:45:00',
+    keywords: ['atm', 'card stuck', 'froze', 'MG Road', 'waiting'],
+    branch: 'Bengaluru - MG Road',
+    events: [
+      { type: 'created', timestamp: '2026-02-28T09:45:00', actor: 'System', description: 'Complaint registered via chatbot (Session ID: CB-28022026-1142)' },
+      { type: 'ai_analysis', timestamp: '2026-02-28T09:45:03', actor: 'AI Engine', description: 'Categorized: ATM → Card Stuck | Severity: High | Sentiment: Negative | ATM ID: UBI-ATM-MG042' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00139',
+    customer_id: 'CUST-89120',
+    customer_name: 'Priya Venkatesh',
+    message: 'I sent ₹5,000 via Google Pay to my landlord on 25th Feb. The amount got debited from my Union Bank account (A/C ending 7891) but my landlord says he never received it. UTR number is 602527214532. It has been 3 days and no refund. I need this money urgently for rent.',
+    channel: 'voice',
+    product: 'UPI',
+    type: 'Transaction Failed',
+    severity: 'high',
+    sentiment: 'very_negative',
+    status: 'in_progress',
+    sla_deadline: '2026-03-04T09:00:00',
+    created_at: '2026-02-27T16:30:00',
+    keywords: ['upi', 'google pay', 'debited', 'not received', 'refund', 'UTR'],
+    branch: 'Chennai - T. Nagar',
+    assigned_to: 'Agent Suresh Kumar',
+    events: [
+      { type: 'created', timestamp: '2026-02-27T16:30:00', actor: 'System', description: 'Complaint registered via IVR voice input (Call ID: IVR-27022026-3487)' },
+      { type: 'ai_analysis', timestamp: '2026-02-27T16:30:04', actor: 'AI Engine', description: 'Categorized: UPI → Transaction Failed | Severity: High | Sentiment: Very Negative | UTR extracted: 602527214532' },
+      { type: 'assigned', timestamp: '2026-02-27T17:00:00', actor: 'System', description: 'Assigned to Agent Suresh Kumar. NPCI dispute raised (Dispute ID: NPCI-DIS-27022026-8891)' },
+    ],
+    related_complaints: ['UBI-2026-00136'],
+  },
+  {
+    complaint_id: 'UBI-2026-00138',
+    customer_id: 'CUST-45678',
+    customer_name: 'Sunita Patel',
+    message: 'My home loan EMI for Feb 2026 was ₹28,450 but ₹30,450 was deducted from my savings account on 5th Feb. This is ₹2,000 extra. Last month also the same thing happened. I have the original sanction letter showing EMI of ₹28,450. Please refund the excess and correct the system.',
+    channel: 'email',
+    product: 'Loan',
+    type: 'EMI Overcharge',
+    severity: 'medium',
+    sentiment: 'negative',
+    status: 'in_progress',
+    sla_deadline: '2026-03-06T18:00:00',
+    created_at: '2026-02-27T10:15:00',
+    keywords: ['home loan', 'emi', 'overcharge', 'extra deducted', 'refund'],
+    branch: 'Ahmedabad - CG Road',
+    assigned_to: 'Loan Processing Cell',
+    events: [
+      { type: 'created', timestamp: '2026-02-27T10:15:00', actor: 'System', description: 'Complaint registered via grievance email' },
+      { type: 'ai_analysis', timestamp: '2026-02-27T10:15:06', actor: 'AI Engine', description: 'Categorized: Loan → EMI Overcharge | Severity: Medium | Recurrence detected: Similar complaint last month' },
+      { type: 'assigned', timestamp: '2026-02-27T11:00:00', actor: 'System', description: 'Assigned to Loan Processing Cell, Ahmedabad Region' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00137',
+    customer_id: 'CUST-12345',
+    customer_name: 'Amit Joshi',
+    message: 'I cannot login to Union Bank net banking since this morning. It says "Invalid credentials" even though I am entering the correct password. I tried resetting the password but OTP is not coming on my registered mobile 98XXXX1234. I need to make an urgent NEFT transfer today.',
+    channel: 'chatbot',
+    product: 'Net Banking',
+    type: 'Login Issue',
+    severity: 'low',
+    sentiment: 'neutral',
+    status: 'resolved',
+    sla_deadline: '2026-03-01T18:00:00',
+    created_at: '2026-02-26T08:00:00',
+    keywords: ['net banking', 'login', 'invalid credentials', 'otp', 'password reset'],
+    branch: 'Pune - Kothrud',
+    assigned_to: 'Agent Ravi Sawant',
+    events: [
+      { type: 'created', timestamp: '2026-02-26T08:00:00', actor: 'System', description: 'Complaint registered via chatbot (Session ID: CB-26022026-0445)' },
+      { type: 'ai_analysis', timestamp: '2026-02-26T08:00:03', actor: 'AI Engine', description: 'Categorized: Net Banking → Login Issue | Severity: Low | Sentiment: Neutral' },
+      { type: 'assigned', timestamp: '2026-02-26T08:15:00', actor: 'System', description: 'Assigned to Agent Ravi Sawant (Digital Banking Support)' },
+      { type: 'resolution', timestamp: '2026-02-26T10:00:00', actor: 'Agent Ravi Sawant', description: 'OTP service was down due to gateway maintenance. Service restored at 09:45 AM. Customer mobile verified and re-linked. Net banking access confirmed working.' },
+      { type: 'agent_approval', timestamp: '2026-02-26T10:30:00', actor: 'Moderator Deepa Thakur', description: 'Resolution reviewed and approved. Response sent to customer via registered email.' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00136',
+    customer_id: 'CUST-99887',
+    customer_name: 'Kavitha Reddy',
+    message: 'I just saw my savings account statement and there is an unauthorized debit of ₹25,000 on 25th Feb which I did not make. Transaction reference shows NEFT to some account I don\'t recognize. I am very scared. Please freeze my account immediately and investigate.',
+    channel: 'voice',
+    product: 'Savings Account',
+    type: 'Unauthorized Debit',
+    severity: 'critical',
+    sentiment: 'very_negative',
+    status: 'escalated',
+    sla_deadline: '2026-03-01T10:00:00',
+    created_at: '2026-02-26T07:30:00',
+    keywords: ['savings account', 'unauthorized', 'debit', 'NEFT', 'freeze', 'investigate'],
+    branch: 'Hyderabad - Banjara Hills',
+    assigned_to: 'Fraud Investigation Unit',
+    events: [
+      { type: 'created', timestamp: '2026-02-26T07:30:00', actor: 'System', description: 'Complaint registered via voice call (Call ID: IVR-26022026-0112)' },
+      { type: 'ai_analysis', timestamp: '2026-02-26T07:30:05', actor: 'AI Engine', description: 'Categorized: Savings Account → Unauthorized Debit | Severity: Critical | Sentiment: Very Negative' },
+      { type: 'escalated', timestamp: '2026-02-26T07:32:00', actor: 'System', description: 'Auto-escalated: Critical severity → Branch Manager (Banjara Hills) + Fraud Investigation Unit notified. Account freeze initiated.' },
+      { type: 'agent_review', timestamp: '2026-02-26T08:15:00', actor: 'FIU - Ramesh Babu', description: 'Account frozen. Beneficiary details flagged with receiving bank. NEFT reversal request raised. Customer asked to visit branch for identity verification.' },
+    ],
+    related_complaints: ['UBI-2026-00142'],
+  },
+  {
+    complaint_id: 'UBI-2026-00135',
+    customer_id: 'CUST-67890',
+    customer_name: 'Vikram Singh',
+    message: 'I withdrew ₹5,000 from ATM ID UBI-ATM-SEC15 at Sector 15, Noida at 6:30 PM on 25th Feb. The machine dispensed only ₹3,000 (six ₹500 notes) but ₹5,000 was debited from my account. I have the transaction slip showing ₹5,000 withdrawal. Please reverse ₹2,000.',
+    channel: 'form',
+    product: 'ATM',
+    type: 'Wrong Amount',
+    severity: 'high',
+    sentiment: 'negative',
+    status: 'in_progress',
+    sla_deadline: '2026-03-03T18:00:00',
+    created_at: '2026-02-25T15:45:00',
+    keywords: ['atm', 'dispensed', 'wrong amount', 'debited', 'transaction slip'],
+    branch: 'Noida - Sector 15',
+    assigned_to: 'ATM Reconciliation Team',
+    events: [
+      { type: 'created', timestamp: '2026-02-25T15:45:00', actor: 'System', description: 'Complaint registered via hard copy form at Sector 15 branch (Form No. GR-2026-0867)' },
+      { type: 'ai_analysis', timestamp: '2026-02-25T15:45:07', actor: 'AI Engine', description: 'Categorized: ATM → Wrong Amount | Severity: High | ATM ID: UBI-ATM-SEC15 | Discrepancy: ₹2,000' },
+      { type: 'assigned', timestamp: '2026-02-25T16:00:00', actor: 'System', description: 'Assigned to ATM Reconciliation Team. EJ log pull requested for ATM UBI-ATM-SEC15.' },
+      { type: 'agent_review', timestamp: '2026-02-26T11:00:00', actor: 'Agent Manish Gupta', description: 'EJ log confirms partial dispense. Cash count verification scheduled. Provisional credit of ₹2,000 initiated.' },
+    ],
+    related_complaints: ['UBI-2026-00140'],
+  },
+  {
+    complaint_id: 'UBI-2026-00134',
+    customer_id: 'CUST-22341',
+    customer_name: 'Deepika Nair',
+    message: 'I applied for premature withdrawal of my FD (FD No. UBI-FD-2024-55678) worth ₹3,00,000 on 20th Feb at Koramangala branch. They said it will be done in 2 days. It has been 8 days and the amount is still not in my savings account. I need this money for a medical emergency.',
+    channel: 'email',
+    product: 'Fixed Deposit',
+    type: 'Premature Withdrawal',
+    severity: 'high',
+    sentiment: 'very_negative',
+    status: 'in_progress',
+    sla_deadline: '2026-03-04T18:00:00',
+    created_at: '2026-02-28T09:00:00',
+    keywords: ['fixed deposit', 'premature withdrawal', 'not credited', 'medical emergency', '8 days'],
+    branch: 'Bengaluru - Koramangala',
+    assigned_to: 'FD Operations - Bengaluru',
+    events: [
+      { type: 'created', timestamp: '2026-02-28T09:00:00', actor: 'System', description: 'Complaint registered via grievance email' },
+      { type: 'ai_analysis', timestamp: '2026-02-28T09:00:04', actor: 'AI Engine', description: 'Categorized: Fixed Deposit → Premature Withdrawal | Severity: High | Urgency keywords: medical emergency' },
+      { type: 'assigned', timestamp: '2026-02-28T09:20:00', actor: 'Branch Manager - Koramangala', description: 'Expedited processing. FD break initiated with applicable penalty calculation.' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00133',
+    customer_id: 'CUST-11098',
+    customer_name: 'Arjun Malhotra',
+    message: 'My credit card statement for January 2026 shows a charge of ₹4,999 from "ONLINE*SUBSCRIPTION" which I did not authorize. I have never subscribed to any online service with this card. Additionally, there is a late fee of ₹750 even though I paid the full bill on time via NEFT on 10th Jan.',
+    channel: 'chatbot',
+    product: 'Credit Card',
+    type: 'Billing Error',
+    severity: 'medium',
+    sentiment: 'negative',
+    status: 'in_progress',
+    sla_deadline: '2026-03-05T18:00:00',
+    created_at: '2026-02-27T14:45:00',
+    keywords: ['credit card', 'billing', 'unauthorized charge', 'late fee', 'subscription'],
+    branch: 'Delhi - Connaught Place',
+    assigned_to: 'Card Operations Team',
+    events: [
+      { type: 'created', timestamp: '2026-02-27T14:45:00', actor: 'System', description: 'Complaint registered via chatbot' },
+      { type: 'ai_analysis', timestamp: '2026-02-27T14:45:05', actor: 'AI Engine', description: 'Categorized: Credit Card → Billing Error | Severity: Medium | Dual issue detected: unauthorized charge + late fee dispute' },
+      { type: 'assigned', timestamp: '2026-02-27T15:00:00', actor: 'System', description: 'Assigned to Card Operations Team. Chargeback request initiated for ₹4,999 merchant transaction.' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00132',
+    customer_id: 'CUST-77654',
+    customer_name: 'Lakshmi Iyer',
+    message: 'I issued a cheque of ₹50,000 to my contractor but it bounced due to "signature mismatch". My signature has not changed. I have been signing the same way for 15 years. This is very embarrassing as my contractor is now threatening legal action. Please resolve immediately.',
+    channel: 'form',
+    product: 'Cheque',
+    type: 'Signature Mismatch',
+    severity: 'high',
+    sentiment: 'very_negative',
+    status: 'open',
+    sla_deadline: '2026-03-03T18:00:00',
+    created_at: '2026-02-28T10:30:00',
+    keywords: ['cheque', 'bounced', 'signature mismatch', 'legal action', 'embarrassing'],
+    branch: 'Coimbatore - RS Puram',
+    events: [
+      { type: 'created', timestamp: '2026-02-28T10:30:00', actor: 'System', description: 'Complaint registered via hard copy form at RS Puram branch (Form No. GR-2026-0889)' },
+      { type: 'ai_analysis', timestamp: '2026-02-28T10:30:06', actor: 'AI Engine', description: 'Categorized: Cheque → Signature Mismatch | Severity: High | Sentiment: Very Negative | Legal risk flagged' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00131',
+    customer_id: 'CUST-44321',
+    customer_name: 'Sanjay Gupta',
+    message: 'I have been trying to do NEFT of ₹2,50,000 through net banking since morning. Every time I enter the OTP and click confirm, it shows "Transaction failed. Please try again later." I have tried 7 times. My account shows no debit but I urgently need to transfer this amount today for a property registration.',
+    channel: 'voice',
+    product: 'Net Banking',
+    type: 'Transaction Failure',
+    severity: 'medium',
+    sentiment: 'negative',
+    status: 'resolved',
+    sla_deadline: '2026-03-02T18:00:00',
+    created_at: '2026-02-26T12:00:00',
+    keywords: ['net banking', 'NEFT', 'transaction failed', 'OTP', 'urgent'],
+    branch: 'Jaipur - MI Road',
+    assigned_to: 'Agent Neha Sharma',
+    events: [
+      { type: 'created', timestamp: '2026-02-26T12:00:00', actor: 'System', description: 'Complaint registered via voice call (Call ID: IVR-26022026-1789)' },
+      { type: 'ai_analysis', timestamp: '2026-02-26T12:00:05', actor: 'AI Engine', description: 'Categorized: Net Banking → Transaction Failure | Severity: Medium | Multiple attempts detected' },
+      { type: 'assigned', timestamp: '2026-02-26T12:15:00', actor: 'System', description: 'Assigned to Agent Neha Sharma (Digital Banking Support)' },
+      { type: 'resolution', timestamp: '2026-02-26T14:30:00', actor: 'Agent Neha Sharma', description: 'Issue identified: NEFT batch processing was halted due to CBS maintenance window (11 AM - 1 PM). Customer guided to retry at 2 PM. Transaction completed successfully at 2:15 PM (UTR: UBIN0526021789).' },
+      { type: 'agent_approval', timestamp: '2026-02-26T15:00:00', actor: 'Moderator Anil Kapoor', description: 'Resolution reviewed and approved. Closure confirmation sent to customer.' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00130',
+    customer_id: 'CUST-88765',
+    customer_name: 'Meera Krishnan',
+    message: 'My minimum balance charge of ₹590 + GST was deducted even though I always maintain above ₹5,000 in my account. Checking my passbook, my balance never went below ₹7,200 the entire quarter. This has happened 3 quarters in a row now. Total ₹1,770 wrongly deducted. Please refund all three charges.',
+    channel: 'email',
+    product: 'Savings Account',
+    type: 'Minimum Balance',
+    severity: 'medium',
+    sentiment: 'negative',
+    status: 'in_progress',
+    sla_deadline: '2026-03-06T18:00:00',
+    created_at: '2026-02-27T09:00:00',
+    keywords: ['savings account', 'minimum balance', 'wrongly deducted', 'refund', 'passbook'],
+    branch: 'Kochi - MG Road',
+    assigned_to: 'Account Services - Kochi',
+    events: [
+      { type: 'created', timestamp: '2026-02-27T09:00:00', actor: 'System', description: 'Complaint registered via grievance email' },
+      { type: 'ai_analysis', timestamp: '2026-02-27T09:00:05', actor: 'AI Engine', description: 'Categorized: Savings Account → Minimum Balance | Severity: Medium | Recurrence: 3 quarters flagged' },
+      { type: 'assigned', timestamp: '2026-02-27T09:30:00', actor: 'System', description: 'Assigned to Account Services, Kochi Region. Balance history audit initiated for last 3 quarters.' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00129',
+    customer_id: 'CUST-55432',
+    customer_name: 'Rohit Agarwal',
+    message: 'I sent ₹15,000 via PhonePe to my friend\'s SBI account on 26th Feb. The amount was debited from my Union Bank account but my friend has not received it even after 48 hours. PhonePe app shows transaction successful. UTR: 602627891023. I want my money back immediately.',
+    channel: 'chatbot',
+    product: 'UPI',
+    type: 'Refund Pending',
+    severity: 'high',
+    sentiment: 'very_negative',
+    status: 'open',
+    sla_deadline: '2026-03-05T09:00:00',
+    created_at: '2026-02-28T08:30:00',
+    keywords: ['upi', 'PhonePe', 'debited', 'not received', 'refund', 'UTR', 'SBI'],
+    branch: 'Lucknow - Hazratganj',
+    events: [
+      { type: 'created', timestamp: '2026-02-28T08:30:00', actor: 'System', description: 'Complaint registered via chatbot (Session ID: CB-28022026-0891)' },
+      { type: 'ai_analysis', timestamp: '2026-02-28T08:30:04', actor: 'AI Engine', description: 'Categorized: UPI → Refund Pending | Severity: High | UTR extracted: 602627891023 | Beneficiary bank: SBI' },
+    ],
+    related_complaints: ['UBI-2026-00139'],
+  },
+  {
+    complaint_id: 'UBI-2026-00128',
+    customer_id: 'CUST-33210',
+    customer_name: 'Fatima Begum',
+    message: 'The ATM at Colaba branch (UBI-ATM-CLB01) has not been working for 3 days. Every time I go there it shows "Temporarily out of service." There is no other Union Bank ATM within 2 km. I am a senior citizen and cannot travel far. This is very inconvenient.',
+    channel: 'voice',
+    product: 'ATM',
+    type: 'ATM Not Working',
+    severity: 'medium',
+    sentiment: 'negative',
+    status: 'in_progress',
+    sla_deadline: '2026-03-04T18:00:00',
+    created_at: '2026-02-27T11:30:00',
+    keywords: ['atm', 'not working', 'out of service', 'senior citizen', '3 days'],
+    branch: 'Mumbai - Colaba',
+    assigned_to: 'ATM Maintenance - Mumbai',
+    events: [
+      { type: 'created', timestamp: '2026-02-27T11:30:00', actor: 'System', description: 'Complaint registered via voice call (Call ID: IVR-27022026-2345)' },
+      { type: 'ai_analysis', timestamp: '2026-02-27T11:30:04', actor: 'AI Engine', description: 'Categorized: ATM → ATM Not Working | ATM ID: UBI-ATM-CLB01 | Duration: 3 days | Senior citizen flag' },
+      { type: 'assigned', timestamp: '2026-02-27T12:00:00', actor: 'System', description: 'Assigned to ATM Maintenance Team, Mumbai Zone. Technician dispatch requested.' },
+    ],
+    related_complaints: [],
+  },
+  {
+    complaint_id: 'UBI-2026-00127',
+    customer_id: 'CUST-66789',
+    customer_name: 'Pooja Sharma',
+    message: 'I have accumulated 45,000 reward points on my Union Miles credit card. When I tried to redeem them on the bank website, it shows only 12,000 points available. Last month I had 48,000 points and used only 3,000 for a voucher. Where did my 33,000 points go? This is theft.',
+    channel: 'email',
+    product: 'Credit Card',
+    type: 'Reward Points',
+    severity: 'medium',
+    sentiment: 'very_negative',
+    status: 'open',
+    sla_deadline: '2026-03-05T18:00:00',
+    created_at: '2026-02-28T07:15:00',
+    keywords: ['credit card', 'reward points', 'missing', 'redemption', 'theft'],
+    branch: 'Delhi - Rajouri Garden',
+    events: [
+      { type: 'created', timestamp: '2026-02-28T07:15:00', actor: 'System', description: 'Complaint registered via grievance email' },
+      { type: 'ai_analysis', timestamp: '2026-02-28T07:15:05', actor: 'AI Engine', description: 'Categorized: Credit Card → Reward Points | Severity: Medium | Points discrepancy: 33,000 points' },
+    ],
+    related_complaints: [],
+  },
+];
+
+export const TREND_DATA = [
+  { date: '15 Feb', complaints: 18, resolved: 12, escalated: 3 },
+  { date: '16 Feb', complaints: 22, resolved: 15, escalated: 4 },
+  { date: '17 Feb', complaints: 14, resolved: 10, escalated: 2 },
+  { date: '18 Feb', complaints: 26, resolved: 17, escalated: 5 },
+  { date: '19 Feb', complaints: 31, resolved: 20, escalated: 7 },
+  { date: '20 Feb', complaints: 24, resolved: 16, escalated: 4 },
+  { date: '21 Feb', complaints: 19, resolved: 13, escalated: 3 },
+  { date: '22 Feb', complaints: 28, resolved: 19, escalated: 5 },
+  { date: '23 Feb', complaints: 35, resolved: 22, escalated: 8 },
+  { date: '24 Feb', complaints: 27, resolved: 18, escalated: 4 },
+  { date: '25 Feb', complaints: 23, resolved: 16, escalated: 3 },
+  { date: '26 Feb', complaints: 29, resolved: 19, escalated: 6 },
+  { date: '27 Feb', complaints: 33, resolved: 21, escalated: 5 },
+  { date: '28 Feb', complaints: 38, resolved: 24, escalated: 9 },
+  { date: '01 Mar', complaints: 16, resolved: 6, escalated: 3 },
+];
+
+export const PRODUCT_DISTRIBUTION = [
+  { name: 'Credit Card', value: 48, fill: 'hsl(220, 70%, 25%)' },
+  { name: 'ATM', value: 36, fill: 'hsl(30, 90%, 55%)' },
+  { name: 'UPI', value: 28, fill: 'hsl(210, 80%, 55%)' },
+  { name: 'Cheque', value: 19, fill: 'hsl(152, 60%, 40%)' },
+  { name: 'Savings Account', value: 14, fill: 'hsl(270, 60%, 55%)' },
+  { name: 'Net Banking', value: 11, fill: 'hsl(0, 72%, 51%)' },
+  { name: 'Loan', value: 8, fill: 'hsl(38, 92%, 50%)' },
+  { name: 'Fixed Deposit', value: 5, fill: 'hsl(180, 50%, 45%)' },
+];
+
+export const SEVERITY_DISTRIBUTION = [
+  { name: 'Critical', value: 22, fill: 'hsl(0, 72%, 51%)' },
+  { name: 'High', value: 41, fill: 'hsl(25, 95%, 53%)' },
+  { name: 'Medium', value: 52, fill: 'hsl(38, 92%, 50%)' },
+  { name: 'Low', value: 34, fill: 'hsl(152, 60%, 40%)' },
+];
+
+export const SLA_DATA: ProductIssue[] = [
+  { product: 'Credit Card', type: 'Fraud', count: 18, severity: 'critical', avg_resolution_hours: 16, sla_hours: 24, template: RESOLUTION_TEMPLATES['Credit Card:Fraud'] },
+  { product: 'ATM', type: 'Cash Not Dispensed', count: 14, severity: 'high', avg_resolution_hours: 42, sla_hours: 48, template: RESOLUTION_TEMPLATES['ATM:Cash Not Dispensed'] },
+  { product: 'UPI', type: 'Transaction Failed', count: 12, severity: 'high', avg_resolution_hours: 32, sla_hours: 72, template: RESOLUTION_TEMPLATES['UPI:Transaction Failed'] },
+  { product: 'Cheque', type: 'Bounce', count: 9, severity: 'medium', avg_resolution_hours: 38, sla_hours: 48, template: RESOLUTION_TEMPLATES['Cheque:Bounce'] },
+  { product: 'Savings Account', type: 'Unauthorized Debit', count: 7, severity: 'critical', avg_resolution_hours: 10, sla_hours: 24, template: RESOLUTION_TEMPLATES['Savings Account:Unauthorized Debit'] },
+  { product: 'Net Banking', type: 'Login Issue', count: 6, severity: 'low', avg_resolution_hours: 4, sla_hours: 24, template: RESOLUTION_TEMPLATES['Net Banking:Login Issue'] },
+  { product: 'Loan', type: 'EMI Overcharge', count: 5, severity: 'medium', avg_resolution_hours: 52, sla_hours: 72, template: RESOLUTION_TEMPLATES['Loan:EMI Overcharge'] },
+  { product: 'Cheque', type: 'Clearance Delay', count: 15, severity: 'medium', avg_resolution_hours: 34, sla_hours: 48, template: RESOLUTION_TEMPLATES['Cheque:Clearance Delay'] },
+  { product: 'UPI', type: 'Refund Pending', count: 11, severity: 'high', avg_resolution_hours: 58, sla_hours: 72, template: RESOLUTION_TEMPLATES['UPI:Refund Pending'] },
+  { product: 'Credit Card', type: 'Billing Error', count: 8, severity: 'medium', avg_resolution_hours: 28, sla_hours: 48, template: RESOLUTION_TEMPLATES['Credit Card:Billing Error'] },
+];
