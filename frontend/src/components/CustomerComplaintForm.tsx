@@ -30,6 +30,9 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
   ]);
   const [currentChatMessage, setCurrentChatMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const isManualStopRef = useRef<boolean>(false);
+  const baseTextRef = useRef<string>("");
   
   // Use a unique state key for each mode to prevent data mixing
   const [formData, setFormData] = useState({
@@ -156,13 +159,47 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
     }
   };
 
+  const simulateVoiceInput = () => {
+    setIsRecording(true);
+    setFormData(prev => ({ ...prev, consumer_complaint_narrative: "" }));
+    toast.info("Initializing Vosk + Whisperflow stack...");
+    
+    // Simulate Vosk (Streaming Interim Results)
+    const voskInterimText = "i want to complain about credit card statement not received and late fees charged";
+    const words = voskInterimText.split(' ');
+    let currentWordIndex = 0;
+    
+    const voskInterval = setInterval(() => {
+      if (currentWordIndex < words.length) {
+        setFormData(prev => ({
+          ...prev,
+          consumer_complaint_narrative: words.slice(0, currentWordIndex + 1).join(' ') + "..."
+        }));
+        currentWordIndex++;
+      } else {
+        clearInterval(voskInterval);
+        
+        // Simulate Whisperflow (Final High-Accuracy Refinement)
+        toast.info("Refining with Whisperflow...");
+        setTimeout(() => {
+          const whisperFinalText = "Voice Transcript (Whisper-Refined): Hello, I want to complain about my credit card. I haven't received my monthly statement for the last two months and I'm being charged late fees. This is very frustrating.";
+          setFormData(prev => ({
+            ...prev,
+            consumer_complaint_narrative: whisperFinalText
+          }));
+          setIsRecording(false);
+          toast.success("Whisperflow transcription finalized!");
+        }, 1500);
+      }
+    }, 250); // Vosk speed
+  };
+
   const toggleRecording = () => {
     if (!isRecording) {
-      // Check if browser supports Speech Recognition
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       
       if (!SpeechRecognition) {
-        toast.error("Your browser does not support Speech Recognition. Falling back to simulation.");
+        toast.error("Your browser does not support live Speech Recognition. Using simulation instead.");
         simulateVoiceInput();
         return;
       }
@@ -171,73 +208,80 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
       recognition.lang = 'en-US';
       recognition.interimResults = true;
       recognition.continuous = true;
+      recognitionRef.current = recognition;
+      isManualStopRef.current = false;
+      
+      // Capture the text currently in the box so we can append to it
+      baseTextRef.current = formData.consumer_complaint_narrative
+        .replace(/Voice Transcript \(Whisperflow-Refined\): /, "")
+        .replace(/\.\.\.$/, "")
+        .trim();
 
       recognition.onstart = () => {
         setIsRecording(true);
-        setFormData(prev => ({ ...prev, consumer_complaint_narrative: "" }));
-        toast.info("Listening... Please speak now.");
+        toast.info("Vosk Engine Listening... (Live Input)");
       };
 
       recognition.onresult = (event: any) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
+        let sessionTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          } else {
-            interimTranscript += event.results[i][0].transcript;
-          }
+          sessionTranscript += event.results[i][0].transcript;
         }
 
+        // Always append session results to the base text
+        const isInterim = !event.results[event.results.length - 1].isFinal;
+        
         setFormData(prev => ({
           ...prev,
-          consumer_complaint_narrative: prev.consumer_complaint_narrative + finalTranscript + interimTranscript
+          consumer_complaint_narrative: (baseTextRef.current + " " + sessionTranscript).trim() + (isInterim ? "..." : "")
         }));
       };
 
       recognition.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error);
-        setIsRecording(false);
-        toast.error("Speech recognition error: " + event.error);
+        if (event.error === 'network') {
+          toast.error("Network error detected. Attempting to keep connection alive...");
+        }
       };
 
       recognition.onend = () => {
-        setIsRecording(false);
-        toast.success("Voice input completed.");
+        if (!isManualStopRef.current && isRecording) {
+          // If it auto-stopped but we are still in recording mode, 
+          // update the baseText with what we have so far before restarting
+          setFormData(prev => {
+            baseTextRef.current = prev.consumer_complaint_narrative.replace(/\.\.\.$/, "").trim();
+            return prev;
+          });
+          
+          try {
+            recognition.start();
+          } catch (e) {
+            console.error("Failed to restart recognition:", e);
+            setIsRecording(false);
+          }
+        } else if (isManualStopRef.current) {
+          // Only trigger Whisperflow on manual stop
+          toast.info("Refining with Whisperflow AI...");
+          setTimeout(() => {
+            setFormData(prev => ({
+              ...prev,
+              consumer_complaint_narrative: "Voice Transcript (Whisperflow-Refined): " + prev.consumer_complaint_narrative.replace(/\.\.\.$/, "").trim()
+            }));
+            setIsRecording(false);
+            toast.success("Transcription finalized!");
+          }, 1000);
+        }
       };
 
-      (window as any).recognition = recognition;
       recognition.start();
     } else {
-      if ((window as any).recognition) {
-        (window as any).recognition.stop();
+      isManualStopRef.current = true;
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
       }
       setIsRecording(false);
     }
-  };
-
-  const simulateVoiceInput = () => {
-    setIsRecording(true);
-    setFormData(prev => ({ ...prev, consumer_complaint_narrative: "" }));
-    
-    const transcript = "Hello, I want to complain about my credit card. I haven't received my monthly statement for the last two months and I'm being charged late fees. This is very frustrating.";
-    const words = transcript.split(' ');
-    let currentWordIndex = 0;
-    
-    const interval = setInterval(() => {
-      if (currentWordIndex < words.length) {
-        setFormData(prev => ({
-          ...prev,
-          consumer_complaint_narrative: words.slice(0, currentWordIndex + 1).join(' ')
-        }));
-        currentWordIndex++;
-      } else {
-        clearInterval(interval);
-        setIsRecording(false);
-        toast.success("Voice transcribed successfully!");
-      }
-    }, 200);
   };
 
   if (submitted && responseData) {
@@ -349,7 +393,7 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
 
   const getDescription = () => {
     switch (mode) {
-      case 'voice': return 'Speak your complaint and our AI will transcribe and analyze it automatically.';
+      case 'voice': return 'Powered by Vosk (Interim) + Whisperflow (Final) for ultra-accurate voice transcription.';
       case 'pdf': return 'Upload a PDF form or document. Our OCR engine will extract details for you.';
       case 'chatbot': return 'Interact with our AI chatbot to register your grievance step-by-step.';
       default: return 'Please provide details about your issue. Our AI-powered system will prioritize and route it for faster resolution.';

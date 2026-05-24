@@ -123,6 +123,15 @@ class AIEngine:
         self.index.add(np.array([embedding]).astype('float32'))
         self.complaint_ids.append(complaint_id)
 
+    async def transcribe_with_whisperflow(self, audio_data: bytes) -> str:
+        """
+        High-accuracy final transcription using Whisperflow.
+        This would typically call a hosted Whisper API or a local Whisper model.
+        """
+        # Placeholder for actual Whisper integration
+        # response = self.openai_client.audio.transcriptions.create(model="whisper-1", file=audio_data)
+        return "Whisper-refined transcript placeholder"
+
     async def get_chatbot_response(self, message: str, history: List[Dict[str, str]]) -> str:
         messages = [
             {"role": "system", "content": "You are a helpful and professional Union Bank AI Assistant. Your goal is to help customers file a complaint. Be empathetic and professional. If you don't have the customer's name yet, ask for it. If they haven't described their issue, ask for details. Keep responses concise."}
