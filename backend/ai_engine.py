@@ -87,7 +87,7 @@ class AIEngine:
         prompt = f"Extract exactly 5-7 key financial or complaint-related keywords from this text. Output only comma-separated keywords.\n\nText: {safe_text}"
         try:
             completion = self.groq_client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=100
@@ -147,7 +147,7 @@ class AIEngine:
         
         try:
             completion = self.groq_client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
                 messages=messages,
                 temperature=0.7,
                 max_tokens=300
@@ -174,7 +174,7 @@ class AIEngine:
         
         try:
             completion = self.groq_client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=500
@@ -184,23 +184,31 @@ class AIEngine:
             print(f"Draft generation error: {e}")
             return f"Thank you for reaching out. We have received your complaint regarding {product} and are looking into the issue: {issue}. Our team will get back to you shortly."
 
-    async def identify_root_cause(self, complaints: List[str], product: str) -> str:
-        complaints_summary = "\n".join([f"- {c}" for c in complaints[:20]])
-        prompt = f"""
-        Summarize the root cause of the following {product} complaints from the last 15 days.
-        Complaints:
-        {complaints_summary}
+    async def identify_root_cause(self, narratives: List[str], product: str) -> str:
+        # Sample narratives to fit in context window
+        sample_size = min(10, len(narratives))
+        sampled = narratives[:sample_size]
+        combined_text = "\n---\n".join(sampled)
         
-        Output: root cause, affected customer segment, recommended action.
+        prompt = f"""
+        You are a Senior Root Cause Analyst for a Bank.
+        Analyze the following complaint narratives for the product '{product}':
+        
+        {combined_text}
+        
+        Identify the primary root cause patterns and provide a concise summary with:
+        1. Top 3 common underlying issues
+        2. Recommended systemic fix
+        3. Predicted risk level if not addressed
         """
         
         try:
             completion = self.groq_client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.5,
-                max_tokens=500
+                max_tokens=800
             )
             return completion.choices[0].message.content
         except Exception as e:
-            return f"Error identifying root cause: {str(e)}"
+            return f"Analysis failed: {str(e)}"
