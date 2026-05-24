@@ -31,6 +31,7 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
   const [currentChatMessage, setCurrentChatMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   
+  // Use a unique state key for each mode to prevent data mixing
   const [formData, setFormData] = useState({
     customer_id: 'CUST-' + Math.floor(Math.random() * 10000),
     customer_name: '',
@@ -42,10 +43,22 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
     company: 'Union Bank',
     state: '',
     zip_code: '',
-    submitted_via: mode === 'online' ? 'Web' : mode.charAt(0).toUpperCase() + mode.slice(1),
+    submitted_via: mode === 'online' ? 'Web' : mode === 'pdf' ? 'PDF' : mode === 'voice' ? 'Voice' : 'Chatbot',
     consumer_consent_provided: 'Yes',
     financial_impact_amount: 0,
   });
+
+  // Reset form data when mode changes to prevent channel mixing
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      customer_name: '',
+      consumer_complaint_narrative: '',
+      submitted_via: mode === 'online' ? 'Web' : mode === 'pdf' ? 'PDF' : mode === 'voice' ? 'Voice' : 'Chatbot',
+    }));
+    setSubmitted(false);
+    setResponseData(null);
+  }, [mode]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -145,30 +158,86 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
 
   const toggleRecording = () => {
     if (!isRecording) {
-      setIsRecording(true);
-      setFormData(prev => ({ ...prev, consumer_complaint_narrative: "" }));
-      toast.info("Recording voice...");
+      // Check if browser supports Speech Recognition
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       
-      const transcript = "Voice Transcript: Hello, I want to complain about my credit card. I haven't received my monthly statement for the last two months and I'm being charged late fees. This is very frustrating.";
-      const words = transcript.split(' ');
-      let currentWordIndex = 0;
-      
-      const interval = setInterval(() => {
-        if (currentWordIndex < words.length) {
-          setFormData(prev => ({
-            ...prev,
-            consumer_complaint_narrative: words.slice(0, currentWordIndex + 1).join(' ')
-          }));
-          currentWordIndex++;
-        } else {
-          clearInterval(interval);
-          setIsRecording(false);
-          toast.success("Voice transcribed successfully!");
+      if (!SpeechRecognition) {
+        toast.error("Your browser does not support Speech Recognition. Falling back to simulation.");
+        simulateVoiceInput();
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setFormData(prev => ({ ...prev, consumer_complaint_narrative: "" }));
+        toast.info("Listening... Please speak now.");
+      };
+
+      recognition.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
         }
-      }, 200);
+
+        setFormData(prev => ({
+          ...prev,
+          consumer_complaint_narrative: prev.consumer_complaint_narrative + finalTranscript + interimTranscript
+        }));
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        setIsRecording(false);
+        toast.error("Speech recognition error: " + event.error);
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        toast.success("Voice input completed.");
+      };
+
+      (window as any).recognition = recognition;
+      recognition.start();
     } else {
+      if ((window as any).recognition) {
+        (window as any).recognition.stop();
+      }
       setIsRecording(false);
     }
+  };
+
+  const simulateVoiceInput = () => {
+    setIsRecording(true);
+    setFormData(prev => ({ ...prev, consumer_complaint_narrative: "" }));
+    
+    const transcript = "Hello, I want to complain about my credit card. I haven't received my monthly statement for the last two months and I'm being charged late fees. This is very frustrating.";
+    const words = transcript.split(' ');
+    let currentWordIndex = 0;
+    
+    const interval = setInterval(() => {
+      if (currentWordIndex < words.length) {
+        setFormData(prev => ({
+          ...prev,
+          consumer_complaint_narrative: words.slice(0, currentWordIndex + 1).join(' ')
+        }));
+        currentWordIndex++;
+      } else {
+        clearInterval(interval);
+        setIsRecording(false);
+        toast.success("Voice transcribed successfully!");
+      }
+    }, 200);
   };
 
   if (submitted && responseData) {
