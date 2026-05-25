@@ -28,36 +28,85 @@ export function SLATracker() {
   }).length;
   const atRiskPct = total > 0 ? Math.round((atRisk / total) * 100) : 0;
 
-  // Group by product/issue for the table
-  const groups = new Map();
+  // Group by product for the table
+  const productGroups = new Map();
   
   complaints.forEach((c: any) => {
-    const key = `${c.product}-${c.issue}`;
-    if (!groups.has(key)) {
-      groups.set(key, {
-        product: c.product,
-        type: c.issue,
-        count: 0,
-        severity: c.severity_label,
+    const productName = c.product || 'Unknown';
+    if (!productGroups.has(productName)) {
+      productGroups.set(productName, {
+        product: productName,
+        issues: new Map(),
+        totalCount: 0,
         totalHours: 0,
-        sla_hours: c.severity_label === 'Critical' ? 24 : c.severity_label === 'High' ? 48 : 72,
-        resolvedCount: 0
+        resolvedCount: 0,
+        severities: [],
+        slaHoursList: [],
+        breachCount: 0,
+        atRiskCount: 0
       });
     }
-    const g = groups.get(key);
-    g.count++;
-    if (c.status === 'Resolved' || c.status === 'Closed') {
+    const pg = productGroups.get(productName);
+    pg.totalCount++;
+    
+    // Track issues
+    const issueType = c.issue || 'General';
+    pg.issues.set(issueType, (pg.issues.get(issueType) || 0) + 1);
+    
+    // Track severity
+    if (c.severity_label) pg.severities.push(c.severity_label);
+    
+    // Track SLA target
+    const slaHours = c.severity_label === 'Critical' ? 24 : c.severity_label === 'High' ? 48 : 72;
+    pg.slaHoursList.push(slaHours);
+
+    // Track resolution
+    if (c.status?.toLowerCase() === 'resolved' || c.status?.toLowerCase() === 'closed') {
       const created = new Date(c.date_received);
       const updated = new Date(c.updated_at || c.date_received);
-      g.totalHours += (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
-      g.resolvedCount++;
+      pg.totalHours += (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
+      pg.resolvedCount++;
+    } else {
+      // Check status for open complaints
+      const deadline = new Date(c.sla_deadline);
+      const hoursLeft = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (hoursLeft < 0) pg.breachCount++;
+      else if (hoursLeft < 12) pg.atRiskCount++;
     }
   });
 
-  const SLA_DATA = Array.from(groups.values()).map(g => ({
-    ...g,
-    avg_resolution_hours: g.resolvedCount > 0 ? Math.round(g.totalHours / g.resolvedCount) : 0
-  }));
+  const SLA_DATA = Array.from(productGroups.values()).map(pg => {
+    // Find most common severity
+    let mostCommonSeverity = 'Medium';
+    if (pg.severities.length > 0) {
+      const sevMap = pg.severities.reduce((acc: any, s: string) => {
+        acc[s] = (acc[s] || 0) + 1;
+        return acc;
+      }, {});
+      mostCommonSeverity = Object.entries(sevMap).sort((a: any, b: any) => (b[1] as number) - (a[1] as number))[0][0];
+    }
+
+    // Top issues string
+    const topIssues = Array.from(pg.issues.entries())
+      .sort((a: any, b: any) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([name]) => name)
+      .join(', ');
+
+    const complianceRate = pg.totalCount > 0 ? Math.round(((pg.totalCount - pg.breachCount) / pg.totalCount) * 100) : 100;
+
+    return {
+      product: pg.product,
+      type: topIssues + (pg.issues.size > 2 ? '...' : ''),
+      count: pg.totalCount,
+      severity: mostCommonSeverity,
+      avg_resolution_hours: pg.resolvedCount > 0 ? Math.round(pg.totalHours / pg.resolvedCount) : 0,
+      sla_hours: pg.slaHoursList.length > 0 ? Math.round(pg.slaHoursList.reduce((a, b) => a + b, 0) / pg.slaHoursList.length) : 72,
+      compliance_rate: complianceRate,
+      breach_count: pg.breachCount,
+      on_track_count: pg.totalCount - pg.breachCount
+    };
+  });
 
       return (
     <div className="space-y-6 animate-fade-in-up">
@@ -106,31 +155,28 @@ export function SLATracker() {
               <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Severity</th>
               <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg Resolution</th>
               <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">SLA Target</th>
-              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+              <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">SLA Compliance</th>
             </tr>
           </thead>
           <tbody>
             {SLA_DATA.map((row) => {
-              const isAtRisk = row.avg_resolution_hours > row.sla_hours * 0.8;
-              const isBreach = row.avg_resolution_hours > row.sla_hours;
+              const complianceColor = row.compliance_rate >= 90 ? 'text-success' : row.compliance_rate >= 70 ? 'text-warning' : 'text-destructive';
+              const complianceBg = row.compliance_rate >= 90 ? 'bg-success/10' : row.compliance_rate >= 70 ? 'bg-warning/10' : 'bg-destructive/10';
+
               return (
-                <tr key={`${row.product}-${row.type}`} className="border-b border-border/50">
-                  <td className="py-3 px-3 text-xs font-medium">{row.product}</td>
-                  <td className="py-3 px-3 text-xs">{row.type}</td>
-                  <td className="py-3 px-3 text-xs font-mono font-semibold">{row.count}</td>
+                <tr key={`${row.product}`} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                  <td className="py-3 px-3 text-xs font-bold text-foreground">{row.product}</td>
+                  <td className="py-3 px-3 text-[10px] text-muted-foreground max-w-[200px] truncate">{row.type}</td>
+                  <td className="py-3 px-3 text-xs font-mono font-bold">{row.count}</td>
                   <td className="py-3 px-3">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium badge-severity-${row.severity}`}>{row.severity}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase badge-severity-${row.severity.toLowerCase()}`}>{row.severity}</span>
                   </td>
                   <td className="py-3 px-3 text-xs font-mono">{row.avg_resolution_hours}h</td>
-                  <td className="py-3 px-3 text-xs font-mono">{row.sla_hours}h</td>
-                  <td className="py-3 px-3">
-                    {isBreach ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">⚠ Breach</span>
-                    ) : isAtRisk ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-warning/10 text-warning">⏳ At Risk</span>
-                    ) : (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-success/10 text-success">✅ On Track</span>
-                    )}
+                  <td className="py-3 px-3 text-xs font-mono text-muted-foreground">{row.sla_hours}h</td>
+                  <td className="py-3 px-3 text-right">
+                    <span className={`text-xs font-black ${complianceColor} ${complianceBg} px-2 py-1 rounded-md inline-block min-w-[50px] text-center`}>
+                      {row.compliance_rate}%
+                    </span>
                   </td>
                 </tr>
               );
