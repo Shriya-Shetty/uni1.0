@@ -132,7 +132,7 @@ export function ComplaintDetail({ complaint, role, onBack }: Props) {
               </span>
 
               <span className="text-xs font-bold text-primary">
-                Priority Rank: #{Math.round((c.priority_rank || 0) * 100)}
+                Priority Rank: #{c.serial_priority_order || '-'}
               </span>
             </div>
 
@@ -314,70 +314,55 @@ export function ComplaintDetail({ complaint, role, onBack }: Props) {
           SLA Information
         </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
               Created
             </p>
-
             <p className="text-xs font-medium">
-              {new Date(c.created_at).toLocaleString(
-                'en-IN',
-                {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                }
-              )}
+              {new Date(c.date_received || c.created_at).toLocaleString('en-IN', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
             </p>
           </div>
 
           <div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
               SLA Deadline
             </p>
-
             <p className="text-xs font-medium">
-              {new Date(c.sla_deadline).toLocaleString(
-                'en-IN',
-                {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                }
-              )}
+              {new Date(c.sla_deadline).toLocaleString('en-IN', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
             </p>
           </div>
 
           <div>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
               Status
             </p>
-
-            <p className="text-xs font-medium capitalize">
-              {c.status?.replace('_', ' ')}
+            <p className="text-xs font-bold uppercase text-primary">
+              {c.status || 'Open'}
             </p>
           </div>
 
           <div>
-            <p className="text-[10px] text-muted-foreground">
-              Assigned To
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+              Escalation Level
             </p>
-
             <p className="text-xs font-medium">
-              {c.assigned_to || 'Unassigned'}
+              {c.escalation_level || 'None'}
             </p>
           </div>
 
           <div>
-            <p className="text-[10px] text-muted-foreground">
-              Escalation
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+              SLA Status
             </p>
-
-            <p className="text-xs font-medium">
-              {c.severity === 'critical'
-                ? '⚠️ Branch Manager + Fraud Team'
-                : c.status === 'escalated'
-                ? '⚠️ Escalated'
-                : '✅ Normal Flow'}
+            <p className={`text-xs font-bold uppercase ${c.sla_status === 'Breached' ? 'text-destructive' : 'text-success'}`}>
+              {c.sla_status || 'On Track'}
             </p>
           </div>
         </div>

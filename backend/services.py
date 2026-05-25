@@ -108,7 +108,7 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
             "root_cause_category": ai_results["issue_subtype"],
             "sla_deadline": sla_deadline,
             "sla_status": "On Track",
-            "escalation_level": "Branch",
+            "escalation_level": "None",
             "ai_generated_response": draft,
             "ai_suggested_resolution_template": draft,
             "human_review_status": "Pending",
@@ -153,9 +153,9 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
         if len(related_complaints) > 10:
             await collection.update_one(
                 {"_id": new_complaint["_id"]},
-                {"$set": {"escalation_level": "Regional Office", "priority_rank": priority_score + 0.1, "status": "Escalated"}}
+                {"$set": {"escalation_level": "Branch", "priority_rank": priority_score + 0.1, "status": "Escalated"}}
             )
-            new_complaint["escalation_level"] = "Regional Office"
+            new_complaint["escalation_level"] = "Branch"
             new_complaint["status"] = "Escalated"
             
         return new_complaint
@@ -166,7 +166,45 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
 async def get_all_complaints():
     collection = await get_collection("complaints")
     cursor = collection.find({})
-    return await cursor.to_list(length=100)
+    complaints = await cursor.to_list(length=1000)
+    
+    # Dynamically update SLA status and Escalation for Open/In Progress items
+    updated_complaints = []
+    now = datetime.utcnow()
+    
+    for c in complaints:
+        # Only update if not already resolved/closed
+        if c.get("status", "").lower() not in ["resolved", "closed"]:
+            sla_deadline = c.get("sla_deadline")
+            current_sla = c.get("sla_status", "On Track")
+            current_escalation = c.get("escalation_level", "None")
+            
+            needs_update = False
+            new_sla = current_sla
+            new_escalation = current_escalation
+            
+            # Check for breach
+            if sla_deadline and now > sla_deadline:
+                if current_sla != "Breached":
+                    new_sla = "Breached"
+                    needs_update = True
+                
+                # Auto-escalate if breached
+                if current_escalation == "None":
+                    new_escalation = "Branch"
+                    needs_update = True
+            
+            if needs_update:
+                await collection.update_one(
+                    {"_id": c["_id"]},
+                    {"$set": {"sla_status": new_sla, "escalation_level": new_escalation}}
+                )
+                c["sla_status"] = new_sla
+                c["escalation_level"] = new_escalation
+        
+        updated_complaints.append(c)
+        
+    return updated_complaints
 
 async def update_complaint_status(complaint_id: str, status: str, resolution: Optional[str] = None):
     collection = await get_collection("complaints")
