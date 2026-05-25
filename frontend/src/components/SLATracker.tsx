@@ -14,14 +14,14 @@ export function SLATracker() {
   
   const now = new Date();
   const breachedComplaints = complaints.filter((c: any) => {
-    if (c.resolution_status === 'Resolved' || c.resolution_status === 'Closed') return false;
+    if (c.status === 'Resolved' || c.status === 'Closed') return false;
     return new Date(c.sla_deadline) < now;
   });
   const breached = breachedComplaints.length;
   const breachedPct = total > 0 ? Math.round((breached / total) * 100) : 0;
   
   const atRisk = complaints.filter((c: any) => {
-    if (c.resolution_status === 'Resolved' || c.resolution_status === 'Closed') return false;
+    if (c.status === 'Resolved' || c.status === 'Closed') return false;
     const deadline = new Date(c.sla_deadline);
     const hoursLeft = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
     return hoursLeft > 0 && hoursLeft < 12; // Increased to 12h for visibility
@@ -46,7 +46,7 @@ export function SLATracker() {
     }
     const g = groups.get(key);
     g.count++;
-    if (c.resolution_status === 'Resolved' || c.resolution_status === 'Closed') {
+    if (c.status === 'Resolved' || c.status === 'Closed') {
       const created = new Date(c.date_received);
       const updated = new Date(c.updated_at || c.date_received);
       g.totalHours += (updated.getTime() - created.getTime()) / (1000 * 60 * 60);

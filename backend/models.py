@@ -20,7 +20,7 @@ class ComplaintCreate(BaseModel):
 
 class ComplaintUpdate(BaseModel):
     human_review_status: Optional[str] = None
-    resolution_status: Optional[str] = None
+    status: Optional[str] = None
     company_response_to_consumer: Optional[str] = None
 
 class Complaint(BaseModel):
@@ -60,7 +60,7 @@ class Complaint(BaseModel):
     ai_generated_response: Optional[str] = None
     ai_suggested_resolution_template: Optional[str] = None
     human_review_status: str = "Pending" # Pending, Approved, Rejected
-    resolution_status: str = "Open" # Open, In Progress, Resolved, Closed
+    status: str = "Open" # Open, In Progress, Resolved, Escalated
     audit_log_enabled: bool = True
     communication_history: List[Dict[str, Any]] = []
     priority_rank: float = 0.0

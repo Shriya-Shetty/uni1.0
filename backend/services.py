@@ -112,7 +112,7 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
             "ai_generated_response": draft,
             "ai_suggested_resolution_template": draft,
             "human_review_status": "Pending",
-            "resolution_status": "Open",
+            "status": "Open",
             "audit_log_enabled": True,
             "communication_history": [
                 {
@@ -137,7 +137,7 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
         logger.info(f"Complaint {complaint_id} saved to DB")
         
         # 9. Calculate Relative Rank (Serial Order)
-        all_open = await collection.find({"resolution_status": "Open"}).sort("priority_rank", -1).to_list(length=1000)
+        all_open = await collection.find({"status": "Open"}).sort("priority_rank", -1).to_list(length=1000)
         serial_order = 1
         for i, c in enumerate(all_open):
             if c["complaint_id"] == complaint_id:
@@ -153,9 +153,10 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
         if len(related_complaints) > 10:
             await collection.update_one(
                 {"_id": new_complaint["_id"]},
-                {"$set": {"escalation_level": "Regional Office", "priority_rank": priority_score + 0.1}}
+                {"$set": {"escalation_level": "Regional Office", "priority_rank": priority_score + 0.1, "status": "Escalated"}}
             )
             new_complaint["escalation_level"] = "Regional Office"
+            new_complaint["status"] = "Escalated"
             
         return new_complaint
     except Exception as e:

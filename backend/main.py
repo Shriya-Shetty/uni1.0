@@ -109,7 +109,7 @@ async def update_status(complaint_id: str, update: ComplaintUpdate):
         # Map new schema fields for update
         updated = await update_complaint_status(
             complaint_id, 
-            update.resolution_status, 
+            update.status, 
             update.company_response_to_consumer
         )
         if not updated:

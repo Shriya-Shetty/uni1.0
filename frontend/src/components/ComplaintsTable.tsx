@@ -19,13 +19,13 @@ export function ComplaintsTable({ onViewComplaint }: Props) {
   });
 
   const ongoing = complaints.filter((c: any) => 
-    c.resolution_status?.toLowerCase() !== 'resolved' && 
-    c.resolution_status?.toLowerCase() !== 'closed'
+    c.status?.toLowerCase() !== 'resolved' && 
+    c.status?.toLowerCase() !== 'closed'
   ).sort((a: any, b: any) => (a.serial_priority_order || 999) - (b.serial_priority_order || 999));
 
   const completed = complaints.filter((c: any) => 
-    c.resolution_status?.toLowerCase() === 'resolved' || 
-    c.resolution_status?.toLowerCase() === 'closed'
+    c.status?.toLowerCase() === 'resolved' || 
+    c.status?.toLowerCase() === 'closed'
   ).sort((a: any, b: any) => new Date(b.updated_at || b.date_received).getTime() - new Date(a.updated_at || a.date_received).getTime());
 
   const currentList = activeTab === 'ongoing' ? ongoing : completed;
@@ -124,7 +124,7 @@ export function ComplaintsTable({ onViewComplaint }: Props) {
               const now = new Date();
               const slaHoursLeft = Math.round((slaDate.getTime() - now.getTime()) / (1000 * 60 * 60));
               const slaBreach = slaHoursLeft < 0;
-              const isResolved = c.resolution_status?.toLowerCase() === 'resolved';
+              const isResolved = c.status?.toLowerCase() === 'resolved' || c.status?.toLowerCase() === 'closed';
 
               return (
                 <tr key={c.complaint_id} onClick={() => onViewComplaint(c)} className="hover:bg-primary/5 cursor-pointer transition-colors group">

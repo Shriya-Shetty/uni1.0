@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, Clock, MessageSquare, TrendingUp, Users, ArrowUpRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, MessageSquare, TrendingUp, Users, ArrowUpRight, AlertCircle } from 'lucide-react';
 import { TREND_DATA, PRODUCT_DISTRIBUTION, SEVERITY_DISTRIBUTION, type Complaint } from '@/data/mockData';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
@@ -14,16 +14,34 @@ export function OverviewPanel({ onViewComplaint }: Props) {
     queryFn: fetchComplaints,
   });
 
-  const totalComplaints = complaints.length;
-  const openComplaints = complaints.filter((c: any) => c.status === 'Open' || c.status === 'In Progress').length;
-  const escalatedComplaints = complaints.filter((c: any) => c.status === 'Escalated').length;
-  const resolvedComplaints = complaints.filter((c: any) => c.status?.startsWith('Resolved')).length;
+  const now = new Date();
+  const total = complaints.length;
+  
+  // Uncatered: status is strictly "Open"
+  const uncatered = complaints.filter((c: any) => 
+    c.status === 'Open'
+  ).length;
+  
+  // Ongoing: status is strictly "In Progress"
+  const ongoing = complaints.filter((c: any) => 
+    c.status === 'In Progress'
+  ).length;
+  
+  // Escalated: status is 'Escalated' OR deadline breached (and not resolved/closed)
+  const escalated = complaints.filter((c: any) => 
+    c.status === 'Escalated' || (c.status !== 'Resolved' && c.status !== 'Closed' && new Date(c.sla_deadline) < now)
+  ).length;
+  
+  const resolved = complaints.filter((c: any) => 
+    c.status === 'Resolved' || c.status === 'Closed'
+  ).length;
 
   const stats = [
-    { label: 'Total Complaints (MTD)', value: totalComplaints.toString(), change: '+0%', icon: MessageSquare, color: 'text-primary' },
-    { label: 'Open / In Progress', value: openComplaints.toString(), change: '+0%', icon: Clock, color: 'text-warning' },
-    { label: 'Escalated', value: escalatedComplaints.toString(), change: '+0%', icon: AlertTriangle, color: 'text-destructive' },
-    { label: 'Resolved (30d)', value: resolvedComplaints.toString(), change: '+0%', icon: CheckCircle, color: 'text-success' },
+    { label: 'Total Complaints', value: total.toString(), icon: MessageSquare, color: 'text-primary' },
+    { label: 'Uncatered', value: uncatered.toString(), icon: AlertCircle, color: 'text-muted-foreground' },
+    { label: 'Ongoing', value: ongoing.toString(), icon: Clock, color: 'text-warning' },
+    { label: 'Escalated', value: escalated.toString(), icon: AlertTriangle, color: 'text-destructive' },
+    { label: 'Resolved', value: resolved.toString(), icon: CheckCircle, color: 'text-success' },
   ];
 
   const recentComplaints = complaints.slice(0, 5);
@@ -33,23 +51,20 @@ export function OverviewPanel({ onViewComplaint }: Props) {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-foreground">Dashboard Overview</h2>
-        <p className="text-sm text-muted-foreground mt-1">Real-time complaint monitoring & AI analysis</p>
+        <p className="text-sm text-muted-foreground mt-1">Real-time database statistics strictly from MongoDB</p>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map((s, i) => {
           const Icon = s.icon;
           return (
             <div key={s.label} className={`stat-card animate-fade-in-up animate-stagger-${i + 1}`}>
               <div className="flex items-center justify-between mb-3">
                 <Icon className={`w-5 h-5 ${s.color}`} />
-                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  {s.change} <ArrowUpRight className="w-3 h-3" />
-                </span>
               </div>
               <p className="text-2xl font-bold text-foreground">{s.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">{s.label}</p>
             </div>
           );
         })}

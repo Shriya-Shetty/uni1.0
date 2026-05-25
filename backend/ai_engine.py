@@ -166,9 +166,11 @@ class AIEngine:
         Issue: {issue}
         Complaint: {safe_text}
         
-        Generate a professional, empathetic, and concise draft resolution response. 
+        Generate a professional, empathetic, and concise draft resolution response of maximum 150 words. 
         Ensure it follows bank regulatory standards.
-        Do not include any placeholders like [Name]. 
+        Do not include any placeholders like [Name].
+        Do NOT offer, suggest, or imply any compensation, refund, waiver, discount, goodwill gesture, or financial relief of any kind.
+        Write in formal, neutral banking language. No emotional language. 
         Just provide the response text.
         """
         

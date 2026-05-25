@@ -37,7 +37,7 @@ export const createComplaint = async (complaintData: ComplaintCreateData) => {
 
 export const updateComplaintStatus = async (complaintId: string, status: string, resolution?: string) => {
   const response = await api.patch(`/complaints/${complaintId}`, { 
-    resolution_status: status, 
+    status, 
     company_response_to_consumer: resolution 
   });
   return response.data;
