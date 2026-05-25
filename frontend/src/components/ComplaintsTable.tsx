@@ -226,6 +226,9 @@ export function ComplaintsTable({ onViewComplaint }: Props) {
                         <span className="text-[9px] text-muted-foreground mt-0.5 font-medium">
                           {slaBreach ? `${Math.abs(slaHoursLeft)}h overdue` : `${slaHoursLeft}h remaining`}
                         </span>
+                        <span className="text-[8px] font-bold uppercase tracking-tighter text-primary/70 mt-1">
+                          STATUS: {c.status || 'Open'}
+                        </span>
                       </div>
                     )}
                   </td>
