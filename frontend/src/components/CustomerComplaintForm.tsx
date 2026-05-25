@@ -346,11 +346,11 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center justify-center pt-2">
-                <div className="text-4xl font-black text-accent-foreground">
+                <div className="text-4xl font-black text-foreground">
                   #{responseData.serial_priority_order || 1}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest text-center">Relative Priority Position</p>
-                <div className="mt-2 text-[10px] bg-accent/10 px-2 py-0.5 rounded text-accent-foreground font-mono">
+                <p className="text-xs text-foreground mt-1 uppercase tracking-widest text-center">Relative Priority Position</p>
+                <div className="mt-2 text-[10px] bg-accent/10 px-2 py-0.5 rounded text-foreground font-mono">
                   SCORE: {(responseData.priority_rank * 100).toFixed(0)}
                 </div>
               </div>

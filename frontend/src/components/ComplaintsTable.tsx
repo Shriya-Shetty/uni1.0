@@ -18,10 +18,35 @@ export function ComplaintsTable({ onViewComplaint }: Props) {
     queryFn: fetchComplaints,
   });
 
+  const calculateDynamicScore = (c: any) => {
+    const pBase = c.priority_rank || 0;
+    const tStart = new Date(c.date_received || c.created_at).getTime();
+    const tSla = new Date(c.sla_deadline).getTime();
+    const tNow = Date.now();
+
+    let uTime = 0;
+    if (tNow <= tSla) {
+      // On Track: Urgency grows from 0.0 to 0.5
+      const totalSlaDuration = tSla - tStart;
+      const elapsed = tNow - tStart;
+      uTime = totalSlaDuration > 0 ? (elapsed / totalSlaDuration) * 0.5 : 0.5;
+    } else {
+      // Breached: Starts at 0.5 + 0.2 for every 24 hours overdue
+      const overdue = tNow - tSla;
+      const daysOverdue = overdue / (1000 * 60 * 60 * 24);
+      uTime = 0.5 + (daysOverdue * 0.2);
+    }
+
+    return pBase + uTime;
+  };
+
   const ongoing = complaints.filter((c: any) => 
     c.status?.toLowerCase() !== 'resolved' && 
     c.status?.toLowerCase() !== 'closed'
-  ).sort((a: any, b: any) => (a.serial_priority_order || 999) - (b.serial_priority_order || 999));
+  ).map((c: any) => ({
+    ...c,
+    dynamic_score: calculateDynamicScore(c)
+  })).sort((a: any, b: any) => b.dynamic_score - a.dynamic_score);
 
   const completed = complaints.filter((c: any) => 
     c.status?.toLowerCase() === 'resolved' || 
@@ -109,17 +134,20 @@ export function ComplaintsTable({ onViewComplaint }: Props) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/50 border-b border-border">
-              <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Rank</th>
+              <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                {activeTab === 'ongoing' ? 'Rank' : 'Date Completed'}
+              </th>
               <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">ID</th>
               <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Customer</th>
               <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Product / Root Cause</th>
               <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Channel</th>
               <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Sentiment</th>
+              <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Severity</th>
               <th className="text-left py-4 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">SLA Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
-            {filtered.map((c) => {
+            {filtered.map((c, index) => {
               const slaDate = new Date(c.sla_deadline);
               const now = new Date();
               const slaHoursLeft = Math.round((slaDate.getTime() - now.getTime()) / (1000 * 60 * 60));
@@ -129,9 +157,15 @@ export function ComplaintsTable({ onViewComplaint }: Props) {
               return (
                 <tr key={c.complaint_id} onClick={() => onViewComplaint(c)} className="hover:bg-primary/5 cursor-pointer transition-colors group">
                   <td className="py-4 px-4">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${isResolved ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
-                      #{c.serial_priority_order || '-'}
-                    </div>
+                    {activeTab === 'ongoing' ? (
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black bg-primary/10 text-primary">
+                        #{index + 1}
+                      </div>
+                    ) : (
+                      <div className="text-xs font-bold text-muted-foreground">
+                        {new Date(c.updated_at || c.date_received).toLocaleDateString()}
+                      </div>
+                    )}
                   </td>
                   <td className="py-4 px-4">
                     <span className="font-mono text-[11px] font-bold text-muted-foreground group-hover:text-primary transition-colors">{c.complaint_id}</span>
@@ -144,6 +178,17 @@ export function ComplaintsTable({ onViewComplaint }: Props) {
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-foreground">{c.product}</span>
                       <span className="text-[10px] text-muted-foreground italic line-clamp-1">{c.issue}</span>
+                      {activeTab === 'ongoing' && (
+                        <div className="mt-1 flex items-center gap-1">
+                          <div className="h-1 w-12 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${c.dynamic_score > 1.0 ? 'bg-destructive' : 'bg-primary'}`} 
+                              style={{ width: `${Math.min(c.dynamic_score * 50, 100)}%` }} 
+                            />
+                          </div>
+                          <span className="text-[8px] font-mono text-muted-foreground">SCORE: {c.dynamic_score.toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="py-4 px-4">
@@ -158,6 +203,11 @@ export function ComplaintsTable({ onViewComplaint }: Props) {
                         {c.sentiment_label}
                       </span>
                     </div>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-tighter border badge-severity-${(c.severity_label || 'medium').toLowerCase()}`}>
+                      {c.severity_label}
+                    </span>
                   </td>
                   <td className="py-4 px-4">
                     {isResolved ? (
