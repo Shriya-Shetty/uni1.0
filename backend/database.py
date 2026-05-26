@@ -21,11 +21,39 @@ class MockCollection:
         return document
     
     def find(self, query=None):
-        return MockCursor(mock_db[self.name])
+        data = mock_db[self.name]
+        if query:
+            # Very basic query filter for status
+            if "status" in query:
+                status_query = query["status"]
+                if isinstance(status_query, dict) and "$in" in status_query:
+                    allowed = [s.lower() for s in status_query["$in"]]
+                    data = [d for d in data if d.get("status", "").lower() in allowed]
+                else:
+                    data = [d for d in data if d.get("status", "") == status_query]
+        return MockCursor(data)
+    
+    async def find_one(self, query):
+        for doc in mock_db[self.name]:
+            match = True
+            for k, v in query.items():
+                if doc.get(k) != v:
+                    match = False
+                    break
+            if match:
+                return doc
+        return None
     
     async def update_one(self, query, update):
-        # Very simple mock update
-        return {"modified_count": 1}
+        doc = await self.find_one(query)
+        if doc and "$set" in update:
+            doc.update(update["$set"])
+        if doc and "$push" in update:
+            for k, v in update["$push"].items():
+                if k not in doc:
+                    doc[k] = []
+                doc[k].append(v)
+        return {"modified_count": 1 if doc else 0}
 
 class MockCursor:
     def __init__(self, data):

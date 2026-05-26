@@ -17,23 +17,25 @@ export function OverviewPanel({ onViewComplaint }: Props) {
   const now = new Date();
   const total = complaints.length;
   
-  // Uncatered: status is strictly "Open"
-  const uncatered = complaints.filter((c: any) => 
-    c.status === 'Open'
-  ).length;
-  
-  // Ongoing: status is strictly "In Progress"
-  const ongoing = complaints.filter((c: any) => 
-    c.status === 'In Progress'
-  ).length;
-  
-  // Escalated: status is 'Escalated' OR deadline breached (and not resolved/closed)
-  const escalated = complaints.filter((c: any) => 
-    c.status === 'Escalated' || (c.status !== 'Resolved' && c.status !== 'Closed' && new Date(c.sla_deadline) < now)
-  ).length;
-  
+  // Statistics calculation with specific overlap for breached-ongoing cases
   const resolved = complaints.filter((c: any) => 
-    c.status === 'Resolved' || c.status === 'Closed'
+    c.status?.toLowerCase() === 'resolved' || c.status?.toLowerCase() === 'closed'
+  ).length;
+
+  // Uncatered: All complaints strictly with "Open" status
+  const uncatered = complaints.filter((c: any) => 
+    c.status?.toLowerCase() === 'open'
+  ).length;
+
+  // Escalated: Status is "Escalated" OR (Status is "In Progress" and SLA is breached)
+  const escalated = complaints.filter((c: any) => 
+    c.status?.toLowerCase() === 'escalated' || 
+    (c.status?.toLowerCase() === 'in progress' && new Date(c.sla_deadline) < now)
+  ).length;
+
+  // Ongoing: Status is "In Progress" (includes both on-track and breached-but-ongoing)
+  const ongoing = complaints.filter((c: any) => 
+    c.status?.toLowerCase() === 'in progress'
   ).length;
 
   const stats = [

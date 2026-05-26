@@ -24,6 +24,7 @@ export function ComplaintDetail({ complaint, role, onBack }: Props) {
   const c = complaint;
   const isAdmin = role === 'admin';
   const isManager = role === 'manager';
+  const isResolved = c.status?.toLowerCase() === 'resolved' || c.status?.toLowerCase() === 'closed';
 
   const queryClient = useQueryClient();
 
@@ -110,8 +111,9 @@ export function ComplaintDetail({ complaint, role, onBack }: Props) {
         Back
       </button>
 
-      {/* Header */}
-      <div className="stat-card">
+      <div className={`${isResolved ? 'opacity-60 grayscale-[0.3] pointer-events-none select-none' : ''} space-y-6 transition-all duration-500`}>
+        {/* Header */}
+        <div className="stat-card">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -131,16 +133,35 @@ export function ComplaintDetail({ complaint, role, onBack }: Props) {
                 {c.submitted_via}
               </span>
 
-              <span className="text-xs font-bold text-primary">
-                Priority Rank: #{c.serial_priority_order || '-'}
-              </span>
+              {!isResolved ? (
+                <div className={`ml-auto flex items-center gap-2 px-3 py-1 rounded-lg border bg-primary/10 border-primary/30 text-primary`}>
+                  <div className={`w-2 h-2 rounded-full bg-primary animate-pulse`} />
+                  <span className="text-xs font-black uppercase tracking-widest">
+                    {c.status || 'Open'}
+                  </span>
+                </div>
+              ) : (
+                <div className="ml-auto flex items-center gap-4">
+                  <span className="text-xs font-bold text-primary">
+                    Final Priority Rank: #{c.serial_priority_order || '-'}
+                  </span>
+                  <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border bg-success/10 border-success/30 text-success`}>
+                    <div className={`w-2 h-2 rounded-full bg-success`} />
+                    <span className="text-xs font-black uppercase tracking-widest">
+                      {c.status || 'Resolved'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <p className="text-sm text-foreground">
               {c.customer_name}{' '}
-              <span className="text-muted-foreground">
-                ({c.customer_id})
-              </span>
+              {c.customer_id && (
+                <span className="text-muted-foreground">
+                  ({c.customer_id})
+                </span>
+              )}
             </p>
 
             {c.state && (
@@ -368,5 +389,6 @@ export function ComplaintDetail({ complaint, role, onBack }: Props) {
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }

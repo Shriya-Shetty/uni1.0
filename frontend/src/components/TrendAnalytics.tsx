@@ -9,6 +9,60 @@ export function TrendAnalytics() {
     queryFn: fetchComplaints,
   });
 
+  // Calculate 15-day trend from real data
+  const now = new Date();
+  const fifteenDaysAgo = new Date(now);
+  fifteenDaysAgo.setDate(now.getDate() - 14);
+  fifteenDaysAgo.setHours(0, 0, 0, 0);
+
+  const trendMap = new Map();
+  for (let i = 0; i < 15; i++) {
+    const d = new Date(fifteenDaysAgo);
+    d.setDate(fifteenDaysAgo.getDate() + i);
+    const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    trendMap.set(dateStr, { date: dateStr, complaints: 0, resolved: 0, escalated: 0 });
+  }
+
+  complaints.forEach((c: any) => {
+    const received = new Date(c.date_received || c.created_at);
+    if (received >= fifteenDaysAgo) {
+      const dateStr = received.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      if (trendMap.has(dateStr)) {
+        const dayData = trendMap.get(dateStr);
+        dayData.complaints++;
+        if (c.status?.toLowerCase() === 'resolved' || c.status?.toLowerCase() === 'closed') {
+          dayData.resolved++;
+        }
+        if (c.status?.toLowerCase() === 'escalated' || (c.status?.toLowerCase() !== 'resolved' && new Date(c.sla_deadline) < now)) {
+          dayData.escalated++;
+        }
+      }
+    }
+  });
+
+  const realTrendData = Array.from(trendMap.values());
+
+  // Dynamic Escalation Alerts
+  const escalationAlerts = [];
+  const productIssueCounts = new Map();
+  complaints.forEach((c: any) => {
+    const key = `${c.product}|${c.issue}`;
+    productIssueCounts.set(key, (productIssueCounts.get(key) || 0) + 1);
+  });
+
+  Array.from(productIssueCounts.entries())
+    .filter(([_, count]) => count > 5) // Lowered threshold for visibility with smaller datasets
+    .sort((a: any, b: any) => b[1] - a[1])
+    .slice(0, 4)
+    .forEach(([key, count]) => {
+      const [product, issue] = key.split('|');
+      escalationAlerts.push({
+        title: `${product} → ${issue}`,
+        description: `${count} complaints detected — Regional Office notified`,
+        severity: count > 10 ? 'critical' : 'high'
+      });
+    });
+
   // Calculate product distribution from real data
   const productCounts = new Map();
   complaints.forEach((c: any) => {
@@ -22,8 +76,10 @@ export function TrendAnalytics() {
   // Calculate severity distribution
   const severityCounts = { 'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0 };
   complaints.forEach((c: any) => {
-    const s = c.severity >= 9 ? 'Critical' : c.severity >= 7 ? 'High' : c.severity >= 4 ? 'Medium' : 'Low';
-    severityCounts[s as keyof typeof severityCounts]++;
+    const s = c.severity_label || 'Medium';
+    if (severityCounts.hasOwnProperty(s)) {
+      severityCounts[s as keyof typeof severityCounts]++;
+    }
   });
   const realSeverityDistribution = [
     { name: 'Critical', value: severityCounts['Critical'], fill: 'hsl(0, 72%, 51%)' },
@@ -43,7 +99,7 @@ export function TrendAnalytics() {
       <div className="stat-card">
         <h3 className="text-sm font-semibold text-foreground mb-4">Complaint Volume (15-Day Trend)</h3>
         <ResponsiveContainer width="100%" height={280}>
-          <AreaChart data={TREND_DATA}>
+          <AreaChart data={realTrendData}>
             <defs>
               <linearGradient id="colorComplaints" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(220, 70%, 25%)" stopOpacity={0.3} />
@@ -113,34 +169,23 @@ export function TrendAnalytics() {
       <div className="stat-card border-l-4 border-l-destructive">
         <h3 className="text-sm font-semibold text-foreground mb-3">⚠️ Escalation Triggers</h3>
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 bg-destructive/5 rounded-lg">
-            <div>
-              <p className="text-xs font-semibold text-foreground">Credit Card → Fraud</p>
-              <p className="text-[10px] text-muted-foreground">18 complaints in last 15 days — <span className="font-semibold text-destructive">Regional Office (Western Zone) notified</span></p>
+          {escalationAlerts.length > 0 ? (
+            escalationAlerts.map((alert, i) => (
+              <div key={i} className={`flex items-center justify-between p-3 rounded-lg ${alert.severity === 'critical' ? 'bg-destructive/5' : 'bg-warning/5'}`}>
+                <div>
+                  <p className="text-xs font-semibold text-foreground">{alert.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{alert.description}</p>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold badge-severity-${alert.severity}`}>
+                  {alert.severity === 'critical' ? '10+ Threshold Breached' : 'Volume Escalation'}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-center border border-dashed border-border rounded-lg">
+              <p className="text-xs text-muted-foreground italic">No volume-based escalations active</p>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full badge-severity-critical font-semibold">10+ threshold breached</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-destructive/5 rounded-lg">
-            <div>
-              <p className="text-xs font-semibold text-foreground">Cheque → Clearance Delay</p>
-              <p className="text-[10px] text-muted-foreground">15 complaints in last 15 days — <span className="font-semibold text-destructive">Regional Office notified</span></p>
-            </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full badge-severity-high font-semibold">10+ threshold breached</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-warning/5 rounded-lg">
-            <div>
-              <p className="text-xs font-semibold text-foreground">ATM → Cash Not Dispensed</p>
-              <p className="text-[10px] text-muted-foreground">14 complaints — Branch Managers alerted across 4 zones</p>
-            </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full badge-severity-high font-semibold">10+ threshold breached</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-warning/5 rounded-lg">
-            <div>
-              <p className="text-xs font-semibold text-foreground">UPI → Transaction Failed + Refund Pending</p>
-              <p className="text-[10px] text-muted-foreground">23 combined complaints — NPCI coordination escalation initiated</p>
-            </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full badge-severity-high font-semibold">10+ threshold breached</span>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -208,12 +208,39 @@ async def get_all_complaints():
 
 async def update_complaint_status(complaint_id: str, status: str, resolution: Optional[str] = None):
     collection = await get_collection("complaints")
+    
+    # Get current complaint to append to history
+    current = await collection.find_one({"_id": complaint_id})
+    if not current:
+        return None
+        
+    history_entry = {
+        "type": "status_update",
+        "actor": "Admin",
+        "description": f"Complaint status updated to {status}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    if status.lower() == "resolved":
+        history_entry["type"] = "resolution"
+        history_entry["description"] = "Complaint marked as Resolved"
+    elif status.lower() == "in progress":
+        history_entry["type"] = "ongoing"
+        history_entry["description"] = "Complaint marked as Ongoing"
+        
     update_data = {
         "status": status,
         "updated_at": datetime.utcnow()
     }
+    
     if resolution:
         update_data["resolution_text"] = resolution
         
-    await collection.update_one({"_id": complaint_id}, {"$set": update_data})
+    await collection.update_one(
+        {"_id": complaint_id}, 
+        {
+            "$set": update_data,
+            "$push": {"communication_history": history_entry}
+        }
+    )
     return await collection.find_one({"_id": complaint_id})
