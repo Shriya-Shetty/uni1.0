@@ -168,13 +168,45 @@ async def get_all_complaints():
     cursor = collection.find({})
     complaints = await cursor.to_list(length=1000)
     
-    # Dynamically update SLA status and Escalation for Open/In Progress items
-    updated_complaints = []
+    # Dynamically update SLA status, Escalation, and Rank
     now = datetime.utcnow()
     
+    # 1. Separate unresolved to calculate ranks
+    unresolved = [c for c in complaints if c.get("status", "").lower() not in ["resolved", "closed"]]
+    
+    def get_dynamic_score(c):
+        p_base = c.get("priority_rank", 0)
+        t_start = c.get("date_received")
+        t_sla = c.get("sla_deadline")
+        
+        if not t_start or not t_sla:
+            return p_base
+            
+        if now <= t_sla:
+            total_sla = (t_sla - t_start).total_seconds()
+            elapsed = (now - t_start).total_seconds()
+            u_time = (elapsed / total_sla) * 0.5 if total_sla > 0 else 0.5
+        else:
+            overdue = (now - t_sla).total_seconds()
+            days_overdue = overdue / (60 * 60 * 24)
+            u_time = 0.5 + (days_overdue * 0.2)
+        return p_base + u_time
+
+    # Sort by dynamic score
+    unresolved_sorted = sorted(unresolved, key=get_dynamic_score, reverse=True)
+    
+    # Create a map for quick rank lookup
+    rank_map = {c["complaint_id"]: i + 1 for i, c in enumerate(unresolved_sorted)}
+    
+    updated_complaints = []
     for c in complaints:
-        # Only update if not already resolved/closed
-        if c.get("status", "").lower() not in ["resolved", "closed"]:
+        is_unresolved = c.get("status", "").lower() not in ["resolved", "closed"]
+        
+        if is_unresolved:
+            # Update rank
+            c["serial_priority_order"] = rank_map.get(c["complaint_id"], 1)
+            
+            # Update SLA/Escalation
             sla_deadline = c.get("sla_deadline")
             current_sla = c.get("sla_status", "On Track")
             current_escalation = c.get("escalation_level", "None")
@@ -183,13 +215,10 @@ async def get_all_complaints():
             new_sla = current_sla
             new_escalation = current_escalation
             
-            # Check for breach
             if sla_deadline and now > sla_deadline:
                 if current_sla != "Breached":
                     new_sla = "Breached"
                     needs_update = True
-                
-                # Auto-escalate if breached
                 if current_escalation == "None":
                     new_escalation = "Branch"
                     needs_update = True
@@ -197,7 +226,7 @@ async def get_all_complaints():
             if needs_update:
                 await collection.update_one(
                     {"_id": c["_id"]},
-                    {"$set": {"sla_status": new_sla, "escalation_level": new_escalation}}
+                    {"$set": {"sla_status": new_sla, "escalation_level": new_escalation, "serial_priority_order": c["serial_priority_order"]}}
                 )
                 c["sla_status"] = new_sla
                 c["escalation_level"] = new_escalation

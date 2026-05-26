@@ -134,23 +134,23 @@ export function ComplaintDetail({ complaint, role, onBack }: Props) {
               </span>
 
               {!isResolved ? (
-                <div className={`ml-auto flex items-center gap-2 px-3 py-1 rounded-lg border bg-primary/10 border-primary/30 text-primary`}>
-                  <div className={`w-2 h-2 rounded-full bg-primary animate-pulse`} />
-                  <span className="text-xs font-black uppercase tracking-widest">
-                    {c.status || 'Open'}
-                  </span>
-                </div>
-              ) : (
                 <div className="ml-auto flex items-center gap-4">
                   <span className="text-xs font-bold text-primary">
-                    Final Priority Rank: #{c.serial_priority_order || '-'}
+                    Relative Priority Rank: #{c.serial_priority_order || '-'}
                   </span>
-                  <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border bg-success/10 border-success/30 text-success`}>
-                    <div className={`w-2 h-2 rounded-full bg-success`} />
+                  <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border bg-primary/10 border-primary/30 text-primary`}>
+                    <div className={`w-2 h-2 rounded-full bg-primary animate-pulse`} />
                     <span className="text-xs font-black uppercase tracking-widest">
-                      {c.status || 'Resolved'}
+                      {c.status || 'Open'}
                     </span>
                   </div>
+                </div>
+              ) : (
+                <div className={`ml-auto flex items-center gap-2 px-3 py-1 rounded-lg border bg-success/10 border-success/30 text-success`}>
+                  <div className={`w-2 h-2 rounded-full bg-success`} />
+                  <span className="text-xs font-black uppercase tracking-widest">
+                    {c.status || 'Resolved'}
+                  </span>
                 </div>
               )}
             </div>
