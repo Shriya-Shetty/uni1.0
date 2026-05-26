@@ -41,7 +41,7 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
             severity_label = "Low"
             
         days_to_resolve = SLA_DAYS.get(severity_label, 7)
-        sla_deadline = datetime.utcnow() + timedelta(days=days_to_resolve)
+        sla_deadline = datetime.now() + timedelta(days=days_to_resolve)
         
         # 4. Duplicate Detection
         embedding = ai_engine.get_embedding(text_content)
@@ -78,7 +78,7 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
         new_complaint = {
             "_id": str(uuid.uuid4()),
             "complaint_id": complaint_id,
-            "date_received": datetime.utcnow(),
+            "date_received": datetime.now(),
             "product": ai_results["product"], # Always use AI extracted product
             "sub_product": complaint_data.sub_product or "General",
             "issue": ai_results["issue_type"],
@@ -90,7 +90,7 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
             "tags": None,
             "consumer_consent_provided": complaint_data.consumer_consent_provided,
             "submitted_via": complaint_data.submitted_via,
-            "date_sent_to_company": datetime.utcnow(),
+            "date_sent_to_company": datetime.now(),
             "company_response_to_consumer": None,
             "timely_response": "Yes",
             "consumer_disputed": "No",
@@ -119,13 +119,13 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
                     "type": "created",
                     "actor": "System",
                     "description": "Complaint Registered via " + complaint_data.submitted_via,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now().isoformat()
                 },
                 {
                     "type": "ai_analysis",
                     "actor": "AI Engine",
                     "description": f"Categorized as {ai_results['product']} with {severity_label} severity",
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now().isoformat()
                 }
             ],
             "priority_rank": priority_score
@@ -169,7 +169,7 @@ async def get_all_complaints():
     complaints = await cursor.to_list(length=1000)
     
     # Dynamically update SLA status, Escalation, and Rank
-    now = datetime.utcnow()
+    now = datetime.now()
     
     # 1. Separate unresolved to calculate ranks
     unresolved = [c for c in complaints if c.get("status", "").lower() not in ["resolved", "closed"]]
@@ -247,7 +247,7 @@ async def update_complaint_status(complaint_id: str, status: str, resolution: Op
         "type": "status_update",
         "actor": "Admin",
         "description": f"Complaint status updated to {status}",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now().isoformat()
     }
     
     if status.lower() == "resolved":
@@ -259,7 +259,7 @@ async def update_complaint_status(complaint_id: str, status: str, resolution: Op
         
     update_data = {
         "status": status,
-        "updated_at": datetime.utcnow()
+        "updated_at": datetime.now()
     }
     
     if resolution:
