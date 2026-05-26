@@ -133,26 +133,31 @@ export function ComplaintDetail({ complaint, role, onBack }: Props) {
                 {c.submitted_via}
               </span>
 
-              {!isResolved ? (
-                <div className="ml-auto flex items-center gap-4">
-                  <span className="text-xs font-bold text-primary">
+              <div className="ml-auto flex items-center gap-3">
+                {!isResolved && (
+                  <span className="text-xs font-bold text-primary mr-2">
                     Relative Priority Rank: #{c.serial_priority_order || '-'}
                   </span>
-                  <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border bg-primary/10 border-primary/30 text-primary`}>
-                    <div className={`w-2 h-2 rounded-full bg-primary animate-pulse`} />
+                )}
+
+                {c.sla_status === 'Breached' && (
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-lg border bg-destructive/10 border-destructive/30 text-destructive animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                    <AlertTriangle className="w-3.5 h-3.5" />
                     <span className="text-xs font-black uppercase tracking-widest">
-                      {c.status || 'Open'}
+                      Breached
                     </span>
                   </div>
-                </div>
-              ) : (
-                <div className={`ml-auto flex items-center gap-2 px-3 py-1 rounded-lg border bg-success/10 border-success/30 text-success`}>
-                  <div className={`w-2 h-2 rounded-full bg-success`} />
+                )}
+
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${
+                  isResolved ? 'bg-success/10 border-success/30 text-success' : 'bg-primary/10 border-primary/30 text-primary'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${isResolved ? 'bg-success' : 'bg-primary animate-pulse'}`} />
                   <span className="text-xs font-black uppercase tracking-widest">
-                    {c.status || 'Resolved'}
+                    {c.status || 'Open'}
                   </span>
                 </div>
-              )}
+              </div>
             </div>
 
             <p className="text-sm text-foreground">
