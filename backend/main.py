@@ -100,8 +100,60 @@ async def chatbot_chat(payload: dict = Body(...)):
     if not message:
         raise HTTPException(status_code=400, detail="Message is required")
     
-    response = await ai_engine.get_chatbot_response(message, history)
-    return {"response": response}
+    ai_response = await ai_engine.get_chatbot_response(message, history)
+    
+    # Check if the complaint should be registered
+    metadata = ai_response.get("metadata", {})
+    if metadata.get("status") == "REGISTERED":
+        fields = metadata.get("fields", {})
+        try:
+            # Prepare the complaint narrative from the confirmed text
+            narrative = fields.get("narrative") or message
+            
+            # Extract numeric amount if possible
+            amount_str = str(fields.get("amount", "0")).replace('$', '').replace(',', '')
+            try:
+                financial_amount = float(amount_str)
+            except:
+                financial_amount = 0.0
+            
+            complaint_data = ComplaintCreate(
+                customer_id=fields.get("customer_id") or "CHAT-USER",
+                customer_name=fields.get("customer_name") or "Unknown Customer",
+                product=fields.get("product"),
+                sub_product=fields.get("sub_product"),
+                issue=fields.get("issue"),
+                sub_issue=fields.get("sub_issue"),
+                consumer_complaint_narrative=narrative,
+                submitted_via="Chatbot",
+                financial_impact_amount=financial_amount
+            )
+            
+            # Register the complaint
+            registered = await register_complaint(complaint_data)
+            
+            # Enrich the response with registration details
+            final_answer = ai_response["answer"]
+            final_answer += f"\n\n✅ **Complaint Registered Successfully!**"
+            final_answer += f"\n- **Complaint ID:** {registered['complaint_id']}"
+            final_answer += f"\n- **Category:** {registered['product']} - {registered['issue']}"
+            final_answer += f"\n- **SLA Deadline:** {registered['sla_deadline'].strftime('%d %b %Y, %I:%M %p')}"
+            final_answer += f"\n- **Priority:** {registered['severity_label']}"
+            
+            if registered.get('ai_generated_response'):
+                final_answer += f"\n\n**Initial Support Response:**\n{registered['ai_generated_response']}"
+            
+            ai_response["answer"] = final_answer
+            
+        except Exception as e:
+            import traceback
+            print(traceback.format_exc())
+            ai_response["answer"] += f"\n\n(Error during registration: {str(e)})"
+            
+    # We return the whole ai_response to the frontend, but the frontend 
+    # might only expect a string. Let's check how the frontend handles it.
+    # If the frontend expects a string, we should just return the 'answer'.
+    return {"response": ai_response["answer"]}
 
 @app.patch("/complaints/{complaint_id}")
 async def update_status(complaint_id: str, update: ComplaintUpdate):

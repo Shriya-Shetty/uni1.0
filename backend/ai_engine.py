@@ -132,29 +132,86 @@ class AIEngine:
         # response = self.openai_client.audio.transcriptions.create(model="whisper-1", file=audio_data)
         return "Whisper-refined transcript placeholder"
 
-    async def get_chatbot_response(self, message: str, history: List[Dict[str, str]]) -> str:
-        messages = [
-            {"role": "system", "content": "You are a helpful and professional Union Bank AI Assistant. Your goal is to help customers file a complaint. Be empathetic and professional. If you don't have the customer's name yet, ask for it. If they haven't described their issue, ask for details. Keep responses concise."}
-        ]
-        # Add history (limit to last 5 for context)
-        for msg in history[-5:]:
-            # Map 'bot' role from frontend to 'assistant' for Groq
-            role = "assistant" if msg["role"] == "bot" else msg["role"]
-            messages.append({"role": role, "content": msg["content"]})
+    async def get_chatbot_response(self, message: str, history: List[Dict[str, str]]) -> Dict[str, Any]:
+        """
+        Stateful chatbot response. 
+        Returns a dict with 'answer' (for user) and 'metadata' (for backend).
+        """
+        system_prompt = f"""
+        You are a Union Bank AI Grievance Assistant. Your goal is to gather all necessary details to file a formal complaint.
         
-        # Add current message
+        REQUIRED FIELDS:
+        - customer_name: Full name of the customer
+        - customer_id: Bank Customer ID (usually 8-10 digits)
+        - product: Must be one of {BANK_PRODUCTS}
+        - sub_product: Specific product variant (e.g., Gold Credit Card, Savings Max, etc.)
+        - issue: Must be one of the main categories in the issue hierarchy.
+        - sub_issue: Specific sub-category.
+        - transaction_date: The date the issue/transaction occurred.
+        - amount: The financial amount involved (if applicable, else 'N/A').
+        - narrative: A detailed description of what happened, including merchant names or specific locations if relevant.
+        
+        ISSUE HIERARCHY:
+        {ISSUE_TYPES}
+        
+        WORKFLOW:
+        1. GATHERING: Ask for missing details one by one. Do NOT move to CONFIRMING until you have all the fields above, especially the date and amount if it's a transaction issue. Be empathetic.
+        2. CONFIRMING: Once ALL fields are known, generate a comprehensive "Complaint Narrative" that includes the date, amount, and all specific details provided. Ask the user to confirm if this summary is accurate and if they are ready to register (Yes/No).
+        3. REGISTERED: If the user confirms the narrative (e.g., says "Yes", "Correct", "Register it"), set status to 'REGISTERED'.
+        
+        OUTPUT FORMAT:
+        You MUST always output your response in this JSON format:
+        {{
+            "answer": "Your natural language response to the user here",
+            "metadata": {{
+                "status": "GATHERING" | "CONFIRMING" | "REGISTERED",
+                "fields": {{
+                    "customer_name": "...",
+                    "customer_id": "...",
+                    "product": "...",
+                    "sub_product": "...",
+                    "issue": "...",
+                    "sub_issue": "...",
+                    "transaction_date": "...",
+                    "amount": "...",
+                    "narrative": "..."
+                }},
+                "narrative_to_confirm": "The comprehensive generated narrative if in CONFIRMING state"
+            }}
+        }}
+        
+        Keep your "answer" concise and professional.
+        """
+        
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add history (limit to last 10 for better context)
+        for msg in history[-10:]:
+            role = "assistant" if msg["role"] == "bot" else msg["role"]
+            content = msg["content"]
+            # If the history contains our JSON, only send the 'answer' part to the AI for next turn
+            # to avoid confusing it with its own metadata, or keep it if it helps state.
+            # Actually, keeping the metadata helps the AI remember the state.
+            messages.append({"role": role, "content": content})
+        
         messages.append({"role": "user", "content": message})
         
         try:
             completion = self.groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model="llama-3.3-70b-versatile", # Updated from decommissioned 3.1 model
                 messages=messages,
-                temperature=0.7,
-                max_tokens=300
+                temperature=0.2, # Lower temperature for more consistent JSON
+                response_format={ "type": "json_object" }
             )
-            return completion.choices[0].message.content
+            import json
+            raw_response = completion.choices[0].message.content
+            return json.loads(raw_response)
         except Exception as e:
-            return f"I'm here to help, but I'm having a bit of trouble connecting to my brain right now. Could you please describe your issue directly? (Error: {str(e)})"
+            print(f"Chatbot error: {e}")
+            return {
+                "answer": "I'm having a bit of trouble processing your request. Could you please state your name and the issue you're facing?",
+                "metadata": {"status": "GATHERING", "fields": {}}
+            }
 
     async def generate_draft_response(self, complaint_text: str, product: str, issue: str) -> str:
         # Truncate text to avoid context window issues

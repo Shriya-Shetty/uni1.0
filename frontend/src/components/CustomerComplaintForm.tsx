@@ -112,25 +112,11 @@ export function CustomerComplaintForm({ mode = 'online' }: Props) {
 
     try {
       // Get intelligent response from Groq via our backend
+      // The backend now handles the state and registration logic internally
       const data = await fetchChatbotResponse(userMsg, chatMessages.map(m => ({ role: m.role, content: m.content })));
       const botResponse = data.response;
       
       setChatMessages(prev => [...prev, { role: 'bot', content: botResponse, timestamp: new Date() }]);
-
-      // Simple logic to detect if we should trigger a submission
-      // In a real app, we'd use the AI to return a 'status' or 'intent'
-      if (!formData.customer_name && userMsg.length < 50) {
-        setFormData(prev => ({ ...prev, customer_name: userMsg }));
-      } else if (userMsg.length > 20) {
-        // If it looks like a complaint description, we also store it
-        setFormData(prev => ({ ...prev, consumer_complaint_narrative: userMsg }));
-        
-        // If we have both name and narrative, we can offer to submit or auto-submit
-        if (formData.customer_name) {
-          toast.info("Registering your complaint based on our conversation...");
-          mutation.mutate({ ...formData, consumer_complaint_narrative: userMsg } as any);
-        }
-      }
     } catch (error) {
       toast.error("Failed to get response from AI assistant");
       setChatMessages(prev => [...prev, { role: 'bot', content: "I'm having trouble connecting to my brain. Can you please describe your complaint directly?", timestamp: new Date() }]);
