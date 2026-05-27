@@ -213,35 +213,46 @@ class AIEngine:
                 "metadata": {"status": "GATHERING", "fields": {}}
             }
 
-    async def generate_draft_response(self, complaint_text: str, product: str, issue: str) -> str:
+    async def generate_draft_response(self, complaint_text: str, product: str, issue: str, complaint_id: str, sla_deadline: str) -> str:
         # Truncate text to avoid context window issues
         safe_text = complaint_text[:4000]
         prompt = f"""
-        You are a helpful and professional Bank Grievance Officer. 
-        A customer has submitted the following complaint:
+        You are a Bank Grievance Officer drafting an official complaint acknowledgement response.
+        
+        STRICT RULES — follow without exception:
+        1. Maximum 4 sentences. No exceptions.
+        2. Do NOT offer, suggest, or imply any compensation, refund, waiver, discount, goodwill gesture, or financial relief of any kind.
+        3. Do NOT make any commitment to a specific resolution outcome.
+        4. Do NOT use placeholders like [Name], [Date], [Amount], [Reference Number].
+        5. Do NOT apologize more than once.
+        6. Write in formal, neutral banking language. No emotional language.
+        7. Output only the response text. No subject line, no headers, no bullet points.
+        
+        STRUCTURE TO FOLLOW (exactly 4 sentences):
+        Sentence 1 — Acknowledge receipt of the complaint regarding {issue} on {product}.
+        Sentence 2 — Confirm the complaint has been registered and is under review by the concerned team.
+        Sentence 3 — State that the resolution is expected by {sla_deadline} without committing to an outcome.
+        Sentence 4 — Provide the complaint reference ID {complaint_id} and invite further contact if needed.
+        
+        Complaint Details:
         Product: {product}
         Issue: {issue}
         Complaint: {safe_text}
         
-        Generate a professional, empathetic, and concise draft resolution response of maximum 150 words. 
-        Ensure it follows bank regulatory standards.
-        Do not include any placeholders like [Name].
-        Do NOT offer, suggest, or imply any compensation, refund, waiver, discount, goodwill gesture, or financial relief of any kind.
-        Write in formal, neutral banking language. No emotional language. 
-        Just provide the response text.
+        Output only the 4-sentence response. Nothing else.
         """
         
         try:
             completion = self.groq_client.chat.completions.create(
                 model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
+                temperature=0.1, # Lower temperature for stricter adherence to rules
                 max_tokens=500
             )
-            return completion.choices[0].message.content
+            return completion.choices[0].message.content.strip()
         except Exception as e:
             print(f"Draft generation error: {e}")
-            return f"Thank you for reaching out. We have received your complaint regarding {product} and are looking into the issue: {issue}. Our team will get back to you shortly."
+            return f"We have received your complaint regarding {issue} on {product} and it is currently under review by our concerned team. We expect to provide a resolution by {sla_deadline}. Your complaint reference ID is {complaint_id}; please contact us if you require further assistance."
 
     async def identify_root_cause(self, narratives: List[str], product: str) -> str:
         # Sample narratives to fit in context window

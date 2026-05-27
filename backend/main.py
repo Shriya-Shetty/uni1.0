@@ -132,18 +132,8 @@ async def chatbot_chat(payload: dict = Body(...)):
             # Register the complaint
             registered = await register_complaint(complaint_data)
             
-            # Enrich the response with registration details
-            final_answer = ai_response["answer"]
-            final_answer += f"\n\n✅ **Complaint Registered Successfully!**"
-            final_answer += f"\n- **Complaint ID:** {registered['complaint_id']}"
-            final_answer += f"\n- **Category:** {registered['product']} - {registered['issue']}"
-            final_answer += f"\n- **SLA Deadline:** {registered['sla_deadline'].strftime('%d %b %Y, %I:%M %p')}"
-            final_answer += f"\n- **Priority:** {registered['severity_label']}"
-            
-            if registered.get('ai_generated_response'):
-                final_answer += f"\n\n**Initial Support Response:**\n{registered['ai_generated_response']}"
-            
-            ai_response["answer"] = final_answer
+            # Use the strictly formatted AI response generated during registration
+            ai_response["answer"] = registered.get('ai_generated_response') or "Complaint registered successfully."
             
         except Exception as e:
             import traceback

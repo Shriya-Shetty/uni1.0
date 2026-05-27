@@ -42,6 +42,7 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
             
         days_to_resolve = SLA_DAYS.get(severity_label, 7)
         sla_deadline = datetime.now() + timedelta(days=days_to_resolve)
+        sla_deadline_str = sla_deadline.strftime("%d %b %Y, %I:%M %p")
         
         # 4. Duplicate Detection
         embedding = ai_engine.get_embedding(text_content)
@@ -59,11 +60,13 @@ async def register_complaint(complaint_data: ComplaintCreate) -> dict:
             elif score >= SIMILARITY_CONFIG["related_threshold"]:
                 related_complaints.append(other_id)
                 
-        # 5. Generate AI Draft Response and Keywords
+        # 5. Generate AI Draft Response, Keywords, and Extract Missing Info
         draft = await ai_engine.generate_draft_response(
             text_content, 
             ai_results["product"], 
-            ai_results["issue_subtype"]
+            ai_results["issue_subtype"],
+            complaint_id,
+            sla_deadline_str
         )
         keywords = await ai_engine.extract_keywords(text_content)
         
