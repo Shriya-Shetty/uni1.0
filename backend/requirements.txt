@@ -1,3 +1,7 @@
+# For reduced memory usage in deployment:
+# - Use CPU-only torch version (see below)
+# - Consider lazy loading AI models in ai_engine.py
+# - Monitor memory usage with tools like memray
 fastapi
 uvicorn
 motor
@@ -9,7 +13,7 @@ faiss-cpu
 groq
 python-dotenv
 python-multipart
-torch
+torch==2.4.0+cpu
 numpy
 scikit-learn
 pymongo
