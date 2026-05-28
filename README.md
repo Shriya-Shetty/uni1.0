@@ -1,185 +1,137 @@
-# Union Bank Smart Resolve Bot
+# NivaaranAI
 
-An AI-powered complaint registration and management system for Union Bank that enables customers to file grievances through multiple channels (web form, voice, PDF upload, AI chatbot) and provides bank administrators with tools to track, analyze, and resolve complaints efficiently.
+## Problem Statement
+PS5- Unified Customer Complaint Communication Dashboard
+This project addresses the problem of fragmented customer complaint management in banking systems by providing a Gen-AI powered unified complaint communication dashboard that automates complaint analysis, categorization, SLA tracking, escalation management, and intelligent resolution support.
 
-## Features
 
-### Customer-Facing Features
-- **Multiple Submission Channels**: File complaints via web form, voice input, PDF document upload, or AI-powered chatbot
-- **AI-Powered Assistance**: 
-  - Chatbot guides users through the complaint filing process step-by-step
-  - Voice-to-text using Vosk + Whisperflow for accurate transcription
-  - PDF text extraction for document-based complaints
-  - Automatic categorization of complaints using NLP models
-- **Real-time Feedback**: Instant confirmation and complaint ID generation upon submission
+## Live Demo
 
-### Admin/Dashboard Features
-- **Complaint Overview**: Visual dashboard showing complaint statistics and trends
-- **Complaint Management**: Search, filter, and view detailed complaint information
-- **SLA Tracking**: Monitor complaint resolution against service level agreements
-- **Root Cause Analysis**: AI-powered identification of recurring issues and systemic problems
-- **Priority Queuing**: AI-driven prioritization of complaints based on severity and impact
+🔗 Live Demo: https://uni1-0.vercel.app/ (Since the backend is quite heavy, it has not been deployed.)
+🎥 Demo Video: [Add Demo Video Link Here]  
 
-## Architecture
+Run locally using instructions below.
 
-### Backend (Python/FastAPI)
-- **API**: RESTful endpoints for complaint management
-- **AI Engine**: 
-  - Zero-shot classification for product/issue categorization
-  - Sentiment analysis for complaint urgency
-  - Named entity recognition for key information extraction
-  - Similarity matching for duplicate detection
-  - Groq-powered LLM for chatbot and response generation
-- **Database**: MongoDB for complaint storage
-- **Services**: PDF processing, voice handling, analytics
 
-### Frontend (React/Vite/TypeScript)
-- **UI Framework**: Shadcn UI components with Tailwind CSS
-- **State Management**: React Query for server state, useState for client state
-- **Routing**: React Router for navigation between views
-- **Real-time Updates**: WebSocket-ready architecture for live updates
-
-## Technology Stack
-
-### Backend
-- **Framework**: FastAPI
-- **AI/ML**: 
-  - Hugging Face Transformers (BART, RoBERTa)
-  - Sentence Transformers for embeddings
-  - FAISS for vector similarity search
-  - Groq (Llama 3) for LLM capabilities
-- **Database**: MongoDB with Motor driver
-- **Other**: PyPDF2, python-multipart, python-dotenv
+## Tech Stack
 
 ### Frontend
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite
-- **UI Components**: Shadcn UI (Radix UI primitives)
-- **State Management**: React Query
-- **HTTP Client**: Axios
-- **Charts**: Recharts
-- **Notifications**: Sonner
-- **Forms**: React Hook Form with Zod validation
+- React 18 with TypeScript  
+- Vite  
+- Tailwind CSS  
+- Shadcn UI  
+- React Query  
+- Axios  
+- Recharts  
 
-## Setup Instructions
+### Backend
+- Python 3.11  
+- FastAPI  
+- MongoDB  
+- Motor Driver  
 
-### Prerequisites
-- Node.js 18+ and npm
-- Python 3.11+
-- MongoDB instance
-- Groq API key (for AI features)
+### AI / NLP
+- Hugging Face Transformers (BART, RoBERTa)  
+- Sentence Transformers (MiniLM-L6-v2)  
+- FAISS Vector Similarity Search  
+- Groq Cloud (Llama 3)  
+- Vosk + Whisperflow (Voice Processing)  
+
+### Other Tools
+- PyPDF2  
+- React Hook Form + Zod  
+- Python-dotenv  
+
+---
+
+## How to Run Locally
 
 ### Backend Setup
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
 
-2. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate
-   ```
+1. Clone the repository:
+```bash
+git clone https://github.com/Shriya-Shetty/uni1.0.git
+```
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. Navigate to backend:
+```bash
+cd backend
+```
 
-4. Create a `.env` file with the following variables:
-   ```
-   GROQ_API_KEY=your_groq_api_key_here
-   MONGODB_URL=mongodb://localhost:27017
-   DB_NAME=smart_resolve_bot
-   ```
+3. Create virtual environment:
+```bash
+python -m venv venv
+```
 
-5. Start the backend server:
-   ```bash
-   uvicorn main:app --reload
-   ```
-   The API will be available at `http://localhost:8000`
+4. Activate virtual environment:
+```bash
+venv\Scripts\activate
+```
+
+5. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+6. Create `.env` file:
+```env
+    GROQ_API_KEY=your_groq_api_key_here
+   MONGODB_URL=mongodb+srv://shravaniparte_db_user:B0pLrR5D97Xoz6OC@clustercomplaint.yehgsfc.mongodb.net/smart_resolve_db
+   DATABASE_NAME=smart_resolve_db
+   PORT=8000
+```
+Generate Your Groq API Key
+Visit the Groq Console: https://console.groq.com/keys
+Click on Create API Key
+Enter a display name for your key
+Click Generate
+Copy the generated API key
+Replace your_groq_api_key_here in the .env file with your generated API key
+
+7. Run backend server:
+```bash
+uvicorn main:app --reload
+```
+
+Backend runs at:
+```bash
+http://localhost:8000
+```
+
+---
 
 ### Frontend Setup
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+
+1. Navigate to frontend:
+```bash
+cd frontend
+```
 
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
-3. Create a `.env` file in the frontend directory with:
-   ```
-   VITE_API_BASE_URL=http://localhost:8000
-   ```
+3. Create `.env` file:
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-   The application will be available at `http://localhost:5173`
+4. Start frontend:
+```bash
+npm run dev
+```
 
-## Usage
+Frontend runs at:
+```bash
+http://localhost:5173
+```
 
-### For Customers
-1. Access the application at `http://localhost:5173`
-2. Choose your role (user/admin) - users start in complaint submission mode
-3. Select a submission channel:
-   - **Online Form**: Fill out the complaint details manually
-   - **Voice**: Speak your complaint (powered by Vosk + Whisperflow)
-   - **PDF**: Upload a document containing your complaint details
-   - **Chatbot**: Interact with the AI assistant to file your complaint step-by-step
-4. Submit your complaint and receive a complaint ID with estimated resolution timeline
-
-### For Administrators
-1. Access the application at `http://localhost:5173`
-2. Login as admin (admin credentials would be configured separately)
-3. View the dashboard for an overview of all complaints
-4. Navigate to different sections:
-   - **Complaints**: Browse, search, and filter complaints
-   - **Overview**: See statistics and trends
-   - **Trends**: Analyze complaint patterns over time
-   - **SLA**: Monitor resolution timelines
-   - **Root Cause**: View AI-generated insights on recurring issues
-5. Click on any complaint to view detailed information and update its status
-
-## API Endpoints
-
-### Complaint Management
-- `GET /` - API health check
-- `POST /complaints/` - Register a new complaint
-- `GET /complaints/` - Retrieve all complaints
-- `PATCH /complaints/{complaint_id}` - Update complaint status
-
-### Channels
-- `POST /channels/pdf-extract` - Extract text from PDF documents
-- `POST /channels/ocr` - Process OCR inputs (mock)
-- `POST /channels/voice` - Process voice inputs (mock)
-
-### Chatbot
-- `POST /chatbot/chat` - Interact with AI complaint assistant
-
-### Analytics
-- `GET /analytics/root-cause/{product}` - Get root cause analysis for a product
-- `GET /system/db-status` - Check database connection status
-
-## AI Capabilities
-
-The system leverages multiple AI technologies:
-
-1. **Complaint Classification**: Uses zero-shot learning to automatically categorize complaints by product and issue type
-2. **Sentiment Analysis**: Determines customer emotion to prioritize urgent cases
-3. **Named Entity Recognition**: Extracts key information like amounts, dates, and customer details
-4. **Similarity Matching**: Identifies duplicate or related complaints using vector embeddings
-5. **Conversational AI**: Powers the chatbot assistant using Groq's Llama 3 models
-6. **Root Cause Analysis**: Analyzes patterns in complaints to identify systemic issues
-7. **Response Generation**: Creates standardized acknowledgment responses for complaints
+---
 
 ## Project Structure
 
-```
+```bash
 uni1.0/
 ├── backend/
 │   ├── main.py              # FastAPI application entry point
@@ -202,19 +154,79 @@ uni1.0/
     └── vite.config.ts       # Vite configuration
 ```
 
-## Future Enhancements
+---
 
-1. **Multi-language Support**: Add support for regional languages
-2. **Integration with Banking Systems**: Connect to actual banking core systems for real-time validation
-3. **Advanced Analytics**: Add predictive analytics for complaint volume forecasting
-4. **Mobile Applications**: Develop native iOS/Android applications
-5. **Voice Biometrics**: Add voice authentication for secure complaint filing
-6. **Blockchain Integration**: For immutable complaint tracking and audit trails
+## Dataset
 
-## License
+The project currently uses synthetic banking complaint data generated for testing and development purposes. The dataset simulates customer complaints across multiple banking products and channels including:
 
-This project is proprietary software developed for Union Bank's internal use.
+- UPI transactions  
+- ATM issues  
+- Credit/Debit card complaints  
+- Loan-related grievances  
+- Internet and mobile banking issues  
+- Fraud and security complaints  
+
+Each complaint contains:
+- Complaint text  
+- Product category  
+- Issue type  
+- Sentiment score  
+- Severity score  
+- SLA information  
+- Escalation status  
+- Duplicate complaint mappings  
+
+No real customer banking data was used.
+
+---
+
+## Model Performance (on Synthetic Data)
+BERT SCORE
+Precision: 0.9981 | Recall: 0.9969 |F1 Score: 0.9975
+
+BLEU Score: 100.0000
+
+Running Chatbot Elo Rating Simulation ---
+Initial Ratings -> Groq_Llama: 1200, Local_Transformers: 1000
+Final Ratings   -> Groq_Llama: 1232.02, Local_Transformers: 967.98
+
+Running ROUGE Evaluation ---
+ROUGE-1: 0.9857
+ROUGE-2: 0.9757
+ROUGE-L: 0.9857 
+
+> Note: Results are based on synthetic complaint datasets and would require fine-tuning on real banking complaint data for production deployment.
+
+---
+
+## Known Limitations
+
+- Currently trained and tested on synthetic complaint datasets only.  
+- Real banking deployment would require integration with core banking systems.  
+- Voice processing accuracy may vary depending on audio quality and accents.  
+- AI-generated responses still require human review for regulatory compliance.  
+
+---
+
+## Team
+
+Shravani Parte — AI/ML Engine Development (Complaint Classification + Root Cause Analysis)
+Shriya Shetty — Backend & Data Pipeline (Database + API Development)
+Navya Goel — Frontend Dashboard & Visualizations (React/TypeScript)
+Samruddhi Ambre — Integration, Testing & Documentation (QA + DevOps) 
+
+---
 
 ## Contact
 
-For support or inquiries, please contact the Union Bank Digital Innovation Team.
+For any queries about this submission:
+Team Name: Nerd.js
+Institute: K.J Somaiya School of Engineering
+Email IDs:
+Shravani Parte- shravani.parte@somaiya.edu
+Shriya Shetty- shriya09@somaiya.edu
+Navya Goel- navya.goel@somaiya.edu
+Samruddhi Ambre- samruddhi.ambre@somaiya.edu
+
+iDEA 2.0 Phase 2 Submission
