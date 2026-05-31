@@ -1,17 +1,16 @@
 # NivaaranAI
 
 ## Problem Statement
-PS5- Unified Customer Complaint Communication Dashboard
+PS5- Unified Customer Complaint Communication Dashboard. 
 This project addresses the problem of fragmented customer complaint management in banking systems by providing a Gen-AI powered unified complaint communication dashboard that automates complaint analysis, categorization, SLA tracking, escalation management, and intelligent resolution support.
 
 
 ## Live Demo
 
 🔗 Live Demo: https://uni1-0.vercel.app/ (Since the backend is quite heavy, it has not been deployed.)
-🎥 Demo Video: [Add Demo Video Link Here]  
+🎥 Demo Video: https://youtu.be/6-mUK39SssM?si=2eZJiWRHsjdb61fc 
 
 Run locally using instructions below.
-
 
 ## Tech Stack
 
