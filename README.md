@@ -8,6 +8,7 @@ This project addresses the problem of fragmented customer complaint management i
 ## Live Demo
 
 🔗 Live Demo: https://uni1-0.vercel.app/ (Since the backend is quite heavy, it has not been deployed.)
+
 🎥 Demo Video: https://youtu.be/6-mUK39SssM?si=2eZJiWRHsjdb61fc 
 
 Run locally using instructions below.
